@@ -24,14 +24,14 @@ exports.login = async (req, res) => {
     // }
 
     // Generate token
-    // const token = jwt.sign(
-    //   { id: user._id, role: user.role },
-    //   process.env.JWT_SECRET,
-    //   { expiresIn: "1d" },
-    // );
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" },
+    );
 
     res.json({
-       token,
+      token,
       user: {
         id: user._id,
         name: user.name,
