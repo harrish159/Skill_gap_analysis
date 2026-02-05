@@ -1,0 +1,17 @@
+const express = require("express");
+const router = express.Router();
+
+const approvalController = require("../controllers/approvalController.js");
+const {
+  createApprovalRequest,
+  GetAllRequests,
+  getPendingRequestsForHOD,
+  updateApprovalRequest,
+} = approvalController;
+
+router.post("/approval", createApprovalRequest);
+router.get("/approval", GetAllRequests);
+router.get("/approval/pending", getPendingRequestsForHOD);
+router.put("/approval/:requestId", updateApprovalRequest);
+
+module.exports = router;

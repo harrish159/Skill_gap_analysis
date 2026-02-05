@@ -66,21 +66,24 @@ exports.getAllTrainings = async (req, res) => {
  */
 exports.getTrainingBySkillAndGap = async (req, res) => {
   try {
+    console.log("Fetching Trainings based on Skill and GapScore...");
     const { skillId, gapScore } = req.params;
+    const gapScoreNum = Number(gapScore); // Convert string to number
 
     const trainings = await Training.find({
       isActive: true,
       "skillsCovered.skillId": skillId,
-      "skillsCovered.minGapScore": { $lte: gapScore },
+      "skillsCovered.minGapScore": { $lte: gapScoreNum },
       $or: [
-        { "skillsCovered.maxGapScore": { $gte: gapScore } },
+        { "skillsCovered.maxGapScore": { $gte: gapScoreNum } },
         { "skillsCovered.maxGapScore": { $exists: false } },
       ],
     }).populate("skillsCovered.skillId", "name category");
 
     res.status(200).json(trainings);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Unable to Retrieve using GapScore" });
   }
 };
 

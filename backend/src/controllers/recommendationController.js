@@ -6,22 +6,22 @@ exports.getTrainingRecommendations = async (req, res) => {
     const { facultyId } = req.params;
 
     // Get latest skill gap
-    const skillGap = await SkillGap.findOne({ facultyId }).sort({
-      createdAt: -1,
-    });
+    const skillGap = await SkillGap.findOne({ facultyId });
+    console.log(skillGap);
 
     if (!skillGap) {
       return res.status(404).json({ message: "No skill gap found" });
     }
 
     const skillIds = skillGap.gaps.map((gap) => gap.skillId);
+    console.log(skillIds);
 
     // Find trainings covering those skills
     const trainings = await Training.find({
-      skillsCovered: { $in: skillIds },
-      isActive: true,
-    });
+      "skillsCovered.skillId": { $in: skillIds },
+    }).populate("skillsCovered.skillId", "name category");
 
+    console.log({trainings});
     res.status(200).json({
       facultyId,
       recommendedTrainings: trainings,

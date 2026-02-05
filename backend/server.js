@@ -18,8 +18,9 @@ app.use("/api", skill);
 app.use("/api", require("./src/routes/mappingRoutes"));
 app.use("/api", require("./src/routes/assessmentRoutes"));
 app.use("/api", require("./src/routes/skillgapRoutes"));
-app.use("/api/recommendations", require("./src/routes/recommendationRoutes"));
+app.use("/api", require("./src/routes/recommendationRoutes"));
 app.use("/api", require("./src/routes/trainingRoutes"));
+app.use("/api", require("./src/routes/approvalRoutes"));
 
 app.get("/", (req, res) => {
   res.send("API is running");

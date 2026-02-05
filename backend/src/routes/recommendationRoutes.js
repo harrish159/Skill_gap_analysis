@@ -3,6 +3,6 @@ const router = express.Router();
 
 const {getTrainingRecommendations} = require("../controllers/recommendationController");
 
-router.get("/recommend/:facultyId", getTrainingRecommendations);
+router.get("/training/recommend/:facultyId", getTrainingRecommendations);
 
 module.exports = router;
