@@ -3,6 +3,8 @@ const dotenv = require("dotenv");
 const connectDB = require("./src/config/db");
 const auth = require("./src/routes/authRoutes");
 const skill = require("./src/routes/skillRoutes");
+const getAllUserRoutes = require("./src/routes/getAllUserRoutes");
+const cors = require("cors");
 
 dotenv.config();
 
@@ -10,11 +12,13 @@ dotenv.config();
 connectDB();
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // Routes
 app.use("/api/auth", auth);
 app.use("/api", skill);
+ app.use("/api", getAllUserRoutes);
 app.use("/api", require("./src/routes/mappingRoutes"));
 app.use("/api", require("./src/routes/assessmentRoutes"));
 app.use("/api", require("./src/routes/skillgapRoutes"));

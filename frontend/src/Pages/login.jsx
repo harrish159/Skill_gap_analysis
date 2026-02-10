@@ -1,0 +1,105 @@
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault(); // ⛔ stop page refresh
+
+    try {
+      const res = await axios.post("http://localhost:3000/api/auth/login", {
+        email,
+        password,
+      });
+
+      console.log(res.data);
+
+      // Save token & role
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.user.role);
+
+      // Redirect based on role
+      const role = res.data.user.role;
+
+      if (role === "ADMIN") navigate("/admin/dashboard");
+      else if (role === "FACULTY") navigate("/faculty/dashboard");
+      else navigate("/hod/dashboard");
+    } catch (err) {
+      alert("Login failed either Email or Password is incorrect");
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+          Login
+        </h1>
+
+        {/* ✅ FORM START */}
+        <form onSubmit={handleLogin}>
+          {/* Email */}
+          <div className="mb-4">
+            <label className="block text-gray-600 mb-1">Email</label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* Password */}
+          <div className="mb-6">
+            <label className="block text-gray-600 mb-1">Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition mb-4"
+          >
+            Login
+          </button>
+        </form>
+        {/* ✅ FORM END */}
+
+        {/* Divider */}
+        <div className="flex items-center my-4">
+          <div className="flex-grow border-t"></div>
+          <span className="mx-3 text-gray-400 text-sm">OR</span>
+          <div className="flex-grow border-t"></div>
+        </div>
+
+        {/* Continue with Google */}
+        <button className="w-full border py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition">
+          <img
+            src="https://www.svgrepo.com/show/475656/google-color.svg"
+            alt="Google"
+            className="w-5 h-5"
+          />
+          <span className="text-gray-700 font-medium">
+            Continue with Google
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

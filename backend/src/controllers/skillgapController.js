@@ -2,40 +2,52 @@ const Assessment = require("../schemas/AssessmentSchema");
 const SkillGap = require("../schemas/SkillGapSchema");
 const SkillMapping = require("../schemas/SkillMappingSchema");
 
+/**
+ * @desc   Fetch all skill gap records (HOD / Admin)
+ * @route  GET /api/skillgaps
+ */
+const getAllSkillGaps = async (req, res) => {
+  try {
+    const skillGaps = await SkillGap.find()
+      .populate("facultyId", "name email role")
+      .populate("assessmentId")
+      .populate("gaps.skillId", "name category");
+
+    res.status(200).json(skillGaps);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * @desc   Calculate & store skill gap after faculty assessment
+ * @route  POST /api/skillgaps
+ */
 const calculateSkillGap = async (req, res) => {
   try {
     const { assessmentId } = req.body;
 
-    // 1. Fetch assessment
+    // 1️⃣ Fetch Assessment
     const assessment = await Assessment.findById(assessmentId);
     if (!assessment) {
       return res.status(404).json({ message: "Assessment not found" });
     }
 
     const facultyId = assessment.facultyId;
-    // console.log(assessment);
     const gaps = [];
 
-    // 2. Loop through faculty ratings
-    for (let rating of assessment.skillRatings) {
+    // 2️⃣ Loop through assessed skills
+    for (const rating of assessment.skillRatings) {
       const { skillId, selfRating } = rating;
-      console.log(skillId, selfRating);
-      // Fetch required rating from SkillMapping
-      const mapping = await SkillMapping.findOne({
-        skillId,
-      });
-      console.log(mapping);
-      if (!mapping) 
-        {
-          console.log("Skill is Not Mapped Bye..")
-          continue; // skip if no mapping
-        }
+
+      // Fetch required rating
+      const mapping = await SkillMapping.findOne({ skillId });
+      if (!mapping) continue;
 
       const currentRating = selfRating;
       const requiredRating = mapping.requiredRating;
 
       const gapScore = Math.max(requiredRating - currentRating, 0);
-      console.log("GapScore : "+gapScore);
 
       let gapSeverity = "low";
       if (gapScore >= 3) gapSeverity = "high";
@@ -43,7 +55,7 @@ const calculateSkillGap = async (req, res) => {
 
       if (gapScore > 0) {
         gaps.push({
-          skillId: rating.skillId,
+          skillId,
           requiredRating,
           currentRating,
           gapScore,
@@ -52,7 +64,7 @@ const calculateSkillGap = async (req, res) => {
       }
     }
 
-    // 3. Save skill gap
+    // 3️⃣ Store Skill Gap (Schema-aligned)
     const skillGap = await SkillGap.create({
       facultyId,
       assessmentId,
@@ -60,10 +72,17 @@ const calculateSkillGap = async (req, res) => {
       totalGaps: gaps.length,
     });
 
-    res.status(201).json(skillGap);
+    res.status(201).json({
+      message: "Skill gap calculated successfully",
+      skillGap,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { calculateSkillGap };
+// ✅ EXPORT BOTH FUNCTIONS (IMPORTANT)
+module.exports = {
+  calculateSkillGap,
+  getAllSkillGaps,
+};

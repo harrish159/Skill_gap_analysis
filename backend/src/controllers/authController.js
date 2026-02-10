@@ -6,31 +6,35 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check user
+    // 1. Find user
     const user = await User.findOne({ email });
     if (!user) {
+      console.log("User Not Found");
       return res.status(400).json({ message: "User not found" });
     }
 
-    // Check active
+    // 2. Active check
     if (!user.isActive) {
+      console.log("Not Active Account")
       return res.status(403).json({ message: "Account deactivated" });
     }
 
-    // Compare password
+    // 3. Password check
     // const isMatch = await bcrypt.compare(password, user.password);
     // if (!isMatch) {
-    //   return res.status(400).json({ message: "Password Error" });
+    //   console.log("Password Doesn't Match");
+    //   return res.status(400).json({ message: "Invalid password" });
     // }
 
-    // Generate token
+    // 4. JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
 
-    res.json({
+    // 5. Response
+    res.status(200).json({
       token,
       user: {
         id: user._id,

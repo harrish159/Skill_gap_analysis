@@ -13,5 +13,4 @@ router.post("/approval", createApprovalRequest);
 router.get("/approval", GetAllRequests);
 router.get("/approval/pending", getPendingRequestsForHOD);
 router.put("/approval/:requestId", updateApprovalRequest);
-
 module.exports = router;

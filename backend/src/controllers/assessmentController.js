@@ -54,7 +54,7 @@ exports.getAssessmentById = async (req, res) => {
     const assessment = await Assessment.findById(req.params.id)
       .populate("facultyId", "name email")
       .populate("skillRatings.skillId", "name category");
-
+      
     if (!assessment) {
       return res.status(404).json({ message: "Assessment not found" });
     }
