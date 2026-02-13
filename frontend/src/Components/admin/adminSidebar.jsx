@@ -32,7 +32,6 @@ const AdminSidebar = () => {
           label="Dashboard"
         />
         <NavItem to="/admin/users" icon={Users} label="Manage Users" />
-        <NavItem to="/admin/analytics" icon={BarChart3} label="Analytics" />
       </nav>
 
       {/* Bottom Actions */}

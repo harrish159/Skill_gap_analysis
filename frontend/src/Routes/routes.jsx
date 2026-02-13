@@ -10,11 +10,9 @@ import {
 import Login from "../Pages/login";
 
 // Admin Components
-// import AdminLayout from "../Components/admin/adminLayout";
-// import AdminDashboard from "../Components/admin/adminDashboard";
-// import AdminUsers from "../Components/admin/adminUsers";
-// import AdminAnalytics from "../Components/admin/adminAnalytics";
-// import AdminProfile from "../Components/admin/adminProfile";
+import AdminLayout from "../Components/admin/adminLayout";
+import AdminDashboard from "../Components/admin/adminDashboard";
+import AdminUsers from "../Components/admin/adminUsers";
 
 // Faculty Components
 // import FacultyLayout from "../Components/faculty/facultyLayout";
@@ -46,13 +44,11 @@ const AppRoutes = () => {
         <Route path="/login" element={<Login />} />
 
         {/* Admin Routes */}
-        {/* <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
-          <Route path="analytics" element={<AdminAnalytics />} />
-          <Route path="profile" element={<AdminProfile />} />
-        </Route> */}
+        </Route>
 
         {/* Faculty Routes */}
         {/* <Route path="/faculty" element={<FacultyLayout />}>
@@ -77,6 +73,7 @@ const AppRoutes = () => {
           <Route path="training" element={<TrainingHod />} />
           <Route path="faculty" element={<FacultyList />} />
           <Route path="approval" element={<Approval />} />
+          {/* <Route path="reports" element={<Approval />} /> */}
         </Route>
 
         {/* 404 Route */}

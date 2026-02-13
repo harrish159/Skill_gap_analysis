@@ -49,7 +49,7 @@ const HodSidebar = () => {
           label="Training Programs"
         />
         <NavItem to="/hod/faculty" icon={UsersRound} label="Faculty List" />
-        <NavItem to="/hod/reports" icon={FileText} label="Reports" />
+        <NavItem to="/hod/approval" icon={FileText} label="Approval" />
       </nav>
 
       {/* Bottom Actions */}

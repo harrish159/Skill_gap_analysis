@@ -47,14 +47,13 @@ exports.GetAllRequests = async (req, res) => {
   }
 };
 
-
 exports.getPendingRequestsForHOD = async (req, res) => {
   try {
     const requests = await ApprovalRequest.find({ status: "Pending" })
-      .populate("facultyId", "name department")
+      .populate("facultyId", "name email role")
       .populate("requestedSkills.skillId", "name category")
-      .sort({ createdAt: -1 }); // latest requests first
-
+      .sort({ createdAt: -1 });
+    console.log(requests);
     res.status(200).json(requests);
   } catch (error) {
     console.error("Error fetching pending requests:", error);
