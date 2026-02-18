@@ -1,4 +1,4 @@
-const User = require("../schemas/userSchema");
+const User = require("../schemas/UserSchema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -20,11 +20,11 @@ exports.login = async (req, res) => {
     }
 
     // 3. Password check
-    // const isMatch = await bcrypt.compare(password, user.password);
-    // if (!isMatch) {
-    //   console.log("Password Doesn't Match");
-    //   return res.status(400).json({ message: "Invalid password" });
-    // }
+    const isMatch = password === user.password;
+    if (!isMatch) {
+      console.log("Password Doesn't Match");
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     // 4. JWT
     const token = jwt.sign(
@@ -34,6 +34,9 @@ exports.login = async (req, res) => {
     );
 
     // 5. Response
+    console.log("--> Login Successful. Sending response for user:", user.email);
+    console.log("--> Role being sent:", user.role);
+
     res.status(200).json({
       token,
       user: {

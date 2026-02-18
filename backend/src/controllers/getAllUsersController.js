@@ -29,12 +29,10 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUser = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password,
       role,
     });
 
@@ -88,13 +86,13 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Password is required" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      { password: hashedPassword },
-      { new: true },
-    );
+    user.password = password;
+    await user.save();
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });

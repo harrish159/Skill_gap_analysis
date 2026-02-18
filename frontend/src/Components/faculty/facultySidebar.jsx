@@ -34,8 +34,6 @@ const FacultySidebar = () => {
           icon={LayoutDashboard}
           label="Dashboard"
         />
-        <NavItem to="/faculty/profile" icon={User} label="My Profile" />
-        <NavItem to="/faculty/skills" icon={Layers} label="My Skills" />
         <NavItem
           to="/faculty/assessment"
           icon={CheckSquare}
@@ -70,10 +68,9 @@ const NavItem = ({ to, icon: Icon, label }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
-      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-        isActive
-          ? "bg-slate-700 text-white"
-          : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
+        ? "bg-slate-700 text-white"
+        : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
       }`
     }
   >
@@ -81,9 +78,8 @@ const NavItem = ({ to, icon: Icon, label }) => (
       <>
         <Icon
           size={18}
-          className={`${
-            isActive ? "text-teal-400" : "text-slate-400"
-          } transition-colors flex-shrink-0`}
+          className={`${isActive ? "text-teal-400" : "text-slate-400"
+            } transition-colors flex-shrink-0`}
         />
         <span>{label}</span>
       </>

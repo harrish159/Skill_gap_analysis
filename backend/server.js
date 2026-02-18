@@ -4,6 +4,7 @@ const connectDB = require("./src/config/db");
 const auth = require("./src/routes/authRoutes");
 const skill = require("./src/routes/skillRoutes");
 const getAllUserRoutes = require("./src/routes/getAllUserRoutes");
+const assessmentRoutes = require("./src/routes/assessmentRoutes");
 const cors = require("cors");
 
 dotenv.config();
@@ -20,7 +21,7 @@ app.use("/api/auth", auth);
 app.use("/api", skill);
  app.use("/api", getAllUserRoutes);
 app.use("/api", require("./src/routes/mappingRoutes"));
-app.use("/api", require("./src/routes/assessmentRoutes"));
+app.use("/api/assessments", assessmentRoutes);
 app.use("/api", require("./src/routes/skillgapRoutes"));
 app.use("/api", require("./src/routes/recommendationRoutes"));
 app.use("/api", require("./src/routes/trainingRoutes"));

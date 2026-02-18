@@ -17,18 +17,35 @@ const Login = () => {
         password,
       });
 
-      console.log(res.data);
+      console.log("--> Login Response Data:", res.data);
+      console.log("--> Raw Role from Backend:", res.data.user?.role);
 
-      // Save token & role
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("role", res.data.user.role);
+      // Save token & role & user details
+      sessionStorage.setItem("token", res.data.token);
+      sessionStorage.setItem("role", res.data.user?.role);
+      sessionStorage.setItem("user", JSON.stringify(res.data.user)); // For ProtectedRoute
+      sessionStorage.setItem("userId", res.data.user?.id);   // For simplified access in other components
 
-      // Redirect based on role
-      const role = res.data.user.role;
+      // Redirect based on role (normalize to uppercase)
+      const role = (res.data.user?.role || "").toUpperCase();
+      console.log("--> Normalized Role for Navigation:", role);
 
-      if (role === "ADMIN") navigate("/admin/dashboard");
-      else if (role === "FACULTY") navigate("/faculty/dashboard");
-      else navigate("/hod/dashboard");
+      if (role === "ADMIN") {
+        console.log("--> Navigating to ADMIN Dashboard");
+        navigate("/admin/dashboard");
+      }
+      else if (role === "FACULTY") {
+        console.log("--> Navigating to FACULTY Dashboard");
+        navigate("/faculty/dashboard");
+      }
+      else if (role === "HOD") {
+        console.log("--> Navigating to HOD Dashboard");
+        navigate("/hod/dashboard");
+      }
+      else {
+        console.error("--> Unknown Role:", role);
+        alert(`Login successful but unknown role: ${role}`);
+      }
     } catch (err) {
       alert("Login failed either Email or Password is incorrect");
     }

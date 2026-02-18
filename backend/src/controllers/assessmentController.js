@@ -1,65 +1,115 @@
 const Assessment = require("../schemas/AssessmentSchema");
+const SkillMapping = require("../schemas/SkillMappingSchema");
+const User = require("../schemas/UserSchema");
 
-/**
- * Create / Submit Assessment
- * Faculty submits self-assessment
- */
-exports.createAssessment = async (req, res) => {
+exports.getAssessmentForFaculty = async (req, res) => {
   try {
-    const { facultyId, skillRatings } = req.body;
+    const { facultyId } = req.params;
+    console.log(`--> Fetching Assessment for Faculty: ${facultyId}`);
 
-    // Basic validation
-    if (!facultyId || !skillRatings || skillRatings.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "facultyId and skillRatings are required" });
+    // 1. Fetch ALL Master Skill Mappings to ensure we have a complete list
+    const mappings = await SkillMapping.find()
+      .populate("skillId", "name category description")
+      .lean();
+
+    // 2. Fetch existing Assessment for this faculty
+    const assessment = await Assessment.findOne({ facultyId }).lean();
+
+    // Create a lookup for existing ratings if they exist
+    const ratingLookup = {};
+    if (assessment) {
+      assessment.skillRatings.forEach((r) => {
+        if (r.skillId) ratingLookup[r.skillId.toString()] = {
+          hodRating: r.hodRating,
+          gap: r.gap
+        };
+      });
     }
 
-    const assessment = await Assessment.create({
-      facultyId,
-      skillRatings,
-      status: "submitted",
-      submittedAt: new Date(),
-    });
+    // 3. Construct the merged skill ratings list
+    // This ensures that even for a "new" assessment, the HOD sees all the skills that need evaluation.
+    const formattedRatings = mappings.map((m) => {
+      if (!m.skillId) return null;
+      const skillIdStr = m.skillId._id.toString();
+      const existing = ratingLookup[skillIdStr] || {};
 
-    res.status(201).json({
-      message: "Assessment submitted successfully",
-      assessment,
+      return {
+        skillId: m.skillId, // populated skill object
+        hodRating: existing.hodRating || 0,
+        gap: existing.gap !== undefined ? existing.gap : null,
+        requiredRating: m.requiredRating
+      };
+    }).filter(r => r !== null);
+
+    console.log(`--> Returning ${formattedRatings.length} skills (Merged with Master Mappings)`);
+
+    // 4. Get faculty details
+    const faculty = await User.findById(facultyId).select("name email role").lean();
+
+    res.status(200).json({
+      facultyId: faculty,
+      skillRatings: formattedRatings,
+      status: assessment ? assessment.status : "new",
+      isNew: !assessment,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error submitting assessment" });
-  }
-};
-
-/**
- * Get all assessments
- */
-exports.getAllAssessments = async (req, res) => {
-  try {
-    const assessments = await Assessment.find()
-      .populate("facultyId", "name email role")
-      .populate("skillRatings.skillId", "name category");
-
-    res.status(200).json(assessments);
-  } catch (error) {
+    console.error("Fetch Error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-/**
- * Get assessment by ID
- */
-exports.getAssessmentById = async (req, res) => {
-  try {
-    const assessment = await Assessment.findById(req.params.id)
-      .populate("facultyId", "name email")
-      .populate("skillRatings.skillId", "name category");
-      
-    if (!assessment) {
-      return res.status(404).json({ message: "Assessment not found" });
-    }
+const { calculateGapsForAssessment } = require("./skillgapController");
 
-    res.status(200).json(assessment);
+exports.saveAssessment = async (req, res) => {
+  try {
+    const { facultyId, ratings } = req.body; // ratings: [{ skillId, hodRating }]
+
+    // 1. Fetch all required ratings to calculate gaps
+    const skillIds = ratings.map((r) => r.skillId);
+    const mappings = await SkillMapping.find({ skillId: { $in: skillIds } });
+
+    // Create a lookup for required ratings
+    const requiredLookup = {};
+    mappings.forEach((m) => {
+      requiredLookup[m.skillId.toString()] = m.requiredRating;
+    });
+
+    // 2. Prepare ratings with calculated gaps
+    const ratingsWithGaps = ratings.map((r) => {
+      const required = requiredLookup[r.skillId] || 0;
+      const gap = (r.hodRating || 0) - required;
+      return {
+        skillId: r.skillId,
+        hodRating: r.hodRating,
+        gap: gap,
+      };
+    });
+
+    const assessment = await Assessment.findOneAndUpdate(
+      { facultyId },
+      {
+        facultyId,
+        skillRatings: ratingsWithGaps,
+        status: "reviewed",
+        reviewedAt: new Date(),
+      },
+      { upsert: true, new: true, runValidators: true },
+    );
+
+    // 3. Update SkillGap Collection (Sync)
+    await calculateGapsForAssessment(assessment);
+
+    res
+      .status(200)
+      .json({ message: "Data stored in Assessment table and SkillGap updated", assessment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+exports.getAllAssessments = async (req, res) => {
+  try {
+    const assessments = await Assessment.find().populate("facultyId", "name email");
+    res.status(200).json(assessments);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

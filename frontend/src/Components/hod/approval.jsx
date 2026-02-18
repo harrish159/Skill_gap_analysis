@@ -10,6 +10,7 @@ import {
   ChevronUp,
   BookOpen,
   Filter,
+  GraduationCap,
 } from "lucide-react";
 import axios from "axios";
 
@@ -27,7 +28,12 @@ const Approval = () => {
   const fetchApproval = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/approval");
+      const token = sessionStorage.getItem("token");
+      const res = await axios.get("http://localhost:3000/api/approval", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setRequests(res.data);
       setError("");
     } catch (error) {
@@ -47,10 +53,19 @@ const Approval = () => {
     if (!actionModal) return;
     try {
       setSubmitting(true);
-      await axios.put(`http://localhost:3000/api/approval/${actionModal.id}`, {
-        status: actionModal.type,
-        reason: reason || "",
-      });
+      const token = sessionStorage.getItem("token");
+      await axios.put(
+        `http://localhost:3000/api/approval/${actionModal.id}`,
+        {
+          status: actionModal.type,
+          reason: reason || "",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setRequests((prev) =>
         prev.map((r) =>
           r._id === actionModal.id
@@ -61,6 +76,7 @@ const Approval = () => {
       setActionModal(null);
       setReason("");
     } catch (err) {
+      console.error("Error updating approval request:", err);
       setError("Failed to update request status");
     } finally {
       setSubmitting(false);
@@ -191,11 +207,10 @@ const Approval = () => {
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeFilter === f
-                  ? "bg-teal-600 text-white shadow-sm"
-                  : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeFilter === f
+                ? "bg-teal-600 text-white shadow-sm"
+                : "bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                }`}
             >
               {f}
               <span className={`ml-2 ${activeFilter === f ? "text-teal-100" : "text-slate-500"}`}>
@@ -228,11 +243,11 @@ const Approval = () => {
               const sc = statusConfig(request.status);
               const initials = request.facultyId?.name
                 ? request.facultyId.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)
                 : "??";
 
               return (
@@ -263,7 +278,7 @@ const Approval = () => {
                             {request.status}
                           </span>
                         </div>
-                        
+
                         {request.facultyId?.department && (
                           <p className="text-sm text-slate-500 mb-3">
                             {request.facultyId.department}
@@ -280,7 +295,7 @@ const Approval = () => {
                               </span>
                             </div>
                           </div>
-                          
+
                           {request.requestedWorkshop && (
                             <div className="flex items-start gap-2">
                               <GraduationCap size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
@@ -292,7 +307,7 @@ const Approval = () => {
                               </div>
                             </div>
                           )}
-                          
+
                           <div className="flex items-center gap-2">
                             <Clock size={14} className="text-slate-400" />
                             <span className="text-xs text-slate-500">
@@ -517,11 +532,10 @@ const Approval = () => {
                 <button
                   onClick={handleStatusUpdate}
                   disabled={submitting}
-                  className={`flex-1 text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-                    actionModal.type === "Accepted"
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-red-600 hover:bg-red-700"
-                  }`}
+                  className={`flex-1 text-white rounded-lg py-3 font-semibold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${actionModal.type === "Accepted"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
+                    : "bg-red-600 hover:bg-red-700"
+                    }`}
                 >
                   {submitting ? "Processing..." : actionModal.type === "Accepted" ? "Approve Request" : "Reject Request"}
                 </button>

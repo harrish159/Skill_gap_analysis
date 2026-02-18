@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const ApprovalRequestSchema = new mongoose.Schema({
   facultyId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Faculty",
+    ref: "User",
     required: true,
   },
   requestedCourse: {

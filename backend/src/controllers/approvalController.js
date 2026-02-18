@@ -1,5 +1,82 @@
 const mongoose = require("mongoose");
 const ApprovalRequest = require("../schemas/ApprovalSchema");
+const SkillGap = require("../schemas/SkillGapSchema");
+
+// =============================
+// Faculty: Create a training request (simplified approval request)
+// =============================
+exports.createTrainingRequest = async (req, res) => {
+  try {
+    const { facultyId, skillId } = req.body;
+
+    if (!facultyId || !skillId) {
+      return res.status(400).json({
+        message: "facultyId and skillId are required",
+      });
+    }
+
+    // Check for existing pending request for this specific skill
+    const existingPending = await ApprovalRequest.findOne({
+      facultyId,
+      status: "Pending",
+      "requestedSkills.skillId": skillId
+    });
+
+    if (existingPending) {
+      return res.status(400).json({
+        message: "A training request for this skill is already pending approval",
+      });
+    }
+
+    // Fetch skill gap data to get the gap score
+    const skillGap = await SkillGap.findOne({ facultyId })
+      .populate("gaps.skillId", "name category");
+
+    if (!skillGap) {
+      return res.status(404).json({
+        message: "No skill gap found for this faculty",
+      });
+    }
+
+    // Find the specific skill gap
+    const gap = skillGap.gaps.find(
+      (g) => g.skillId._id.toString() === skillId.toString()
+    );
+
+    if (!gap) {
+      return res.status(404).json({
+        message: "Skill not found in faculty's gap analysis",
+      });
+    }
+
+    // Create approval request
+    const approvalRequest = new ApprovalRequest({
+      facultyId,
+      requestedCourse: `Training for ${gap.skillId.name}`,
+      requestedWorkshop: null,
+      requestedSkills: [
+        {
+          skillId: gap.skillId._id,
+          gapScore: gap.gapScore,
+        },
+      ],
+      status: "Pending",
+      createdAt: new Date(),
+    });
+
+    await approvalRequest.save();
+
+    console.log(`-> Training request created for faculty ${facultyId}, skill ${gap.skillId.name}`);
+
+    res.status(201).json({
+      message: "Training request submitted successfully",
+      requestId: approvalRequest._id,
+    });
+  } catch (error) {
+    console.error("Error creating training request:", error);
+    res.status(500).json({ message: "Error creating training request" });
+  }
+};
 
 // =============================
 // Faculty: Create a new approval request
@@ -12,6 +89,22 @@ exports.createApprovalRequest = async (req, res) => {
     if (!facultyId || !requestedCourse || !requestedSkills?.length) {
       return res.status(400).json({
         message: "facultyId, requestedCourse and requestedSkills are required",
+      });
+    }
+
+    // Extract skill IDs from requestedSkills array
+    const skillIds = requestedSkills.map(s => s.skillId);
+
+    // Check if any of these skills already have a pending request
+    const existingPending = await ApprovalRequest.findOne({
+      facultyId,
+      status: "Pending",
+      "requestedSkills.skillId": { $in: skillIds }
+    });
+
+    if (existingPending) {
+      return res.status(400).json({
+        message: "One or more of the selected skills already have a pending approval request",
       });
     }
 
@@ -38,7 +131,10 @@ exports.createApprovalRequest = async (req, res) => {
 
 exports.GetAllRequests = async (req, res) => {
   try {
-    const requests = await ApprovalRequest.find();
+    const requests = await ApprovalRequest.find()
+      .populate("facultyId", "name email role department")
+      .populate("requestedSkills.skillId", "name category")
+      .sort({ createdAt: -1 });
     console.log(requests);
     res.status(200).json(requests);
   } catch (error) {

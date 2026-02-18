@@ -9,8 +9,19 @@ const {
   updateApprovalRequest,
 } = approvalController;
 
-router.post("/approval", createApprovalRequest);
-router.get("/approval", GetAllRequests);
-router.get("/approval/pending", getPendingRequestsForHOD);
-router.put("/approval/:requestId", updateApprovalRequest);
+const protect = require("../middleware/authmiddleware");
+const authorize = require("../middleware/roleMiddleware");
+
+// Path: POST /api/approval (Faculty only)
+router.post("/approval", protect, authorize("faculty"), createApprovalRequest);
+
+// Path: GET /api/approval (HOD/Admin only)
+router.get("/approval", protect, authorize("hod", "admin"), GetAllRequests);
+
+// Path: GET /api/approval/pending (HOD/Admin only)
+router.get("/approval/pending", protect, authorize("hod", "admin"), getPendingRequestsForHOD);
+
+// Path: PUT /api/approval/:requestId (HOD/Admin only)
+router.put("/approval/:requestId", protect, authorize("hod", "admin"), updateApprovalRequest);
+
 module.exports = router;

@@ -1,329 +1,263 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  ClipboardList,
-  User,
-  Star,
-  X,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Save, ArrowLeft, Loader2, Target, CheckCircle, Search, Users, RefreshCw } from "lucide-react";
 
-const Assessments = () => {
-  const [assessments, setAssessments] = useState([]);
+// --- Detail Component ---
+const AssessmentDetail = ({ facultyId, onBack }) => {
+  const [data, setData] = useState(null);
+  const [hodRatings, setHodRatings] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [expandedRows, setExpandedRows] = useState({});
+  const [saving, setSaving] = useState(false);
 
-  const fetchAllAssessments = async () => {
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const res = await axios.get(
+          `http://localhost:3000/api/assessments/faculty/${facultyId}`,
+        );
+        setData(res.data);
+
+        // Initialize the local state with existing ratings
+        const initial = {};
+        res.data.skillRatings.forEach((sr) => {
+          initial[sr.skillId._id] = sr.hodRating;
+        });
+        setHodRatings(initial);
+      } catch (err) {
+        alert("Error fetching skills");
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (facultyId) fetchSkills();
+  }, [facultyId]);
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/assessments");
-      setAssessments(res.data);
-      setError("");
+      const payload = {
+        facultyId: facultyId,
+        ratings: Object.keys(hodRatings).map((sId) => ({
+          skillId: sId,
+          hodRating: hodRatings[sId],
+        })),
+      };
+      await axios.post("http://localhost:3000/api/assessments/save", payload);
+      alert("Assessment saved successfully!");
+      onBack();
     } catch (err) {
-      console.error(err);
-      setError("Failed to load assessments");
+      alert("Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading)
+    return <div className="p-10 text-center">Loading Assessment Data...</div>;
+
+  return (
+    <div className="p-8 max-w-5xl mx-auto">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 mb-6 text-slate-500 hover:text-black"
+      >
+        <ArrowLeft size={20} /> Back to List
+      </button>
+
+      <div className="bg-white rounded-3xl shadow-xl border p-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-black">{data.facultyId.name}</h1>
+            <p className="text-slate-500">
+              Evaluating against Master Skill Mappings
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-teal-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-teal-700 disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+            Save Assessment
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {data.skillRatings.map((sr) => {
+            const currentRating = hodRatings[sr.skillId._id] || 0;
+            const required = sr.requiredRating;
+            const gap = currentRating > 0 ? currentRating - required : null;
+
+            let gapColor = "text-slate-400";
+            let gapBg = "bg-slate-50";
+            let gapText = "Pending";
+
+            if (gap !== null) {
+              if (gap < 0) {
+                gapColor = "text-red-600";
+                gapBg = "bg-red-50 border-red-200";
+                gapText = `Gap: ${gap}`;
+              } else if (gap === 0) {
+                gapColor = "text-teal-600";
+                gapBg = "bg-teal-50 border-teal-200";
+                gapText = "Standard Met";
+              } else {
+                gapColor = "text-blue-600";
+                gapBg = "bg-blue-50 border-blue-200";
+                gapText = `Exceeds: +${gap}`;
+              }
+            }
+
+            return (
+              <div
+                key={sr.skillId._id}
+                className="p-6 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-all"
+              >
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 px-2 py-1 rounded">
+                    {sr.skillId.category}
+                  </span>
+                  <h3 className="text-xl font-bold mt-1">{sr.skillId.name}</h3>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-2 text-slate-500 text-sm font-bold">
+                      <Target size={14} /> Required: {required}
+                    </div>
+                    {/* Gap Indicator */}
+                    <div className={`px-3 py-1 rounded-full text-xs font-black uppercase border ${gapBg} ${gapColor}`}>
+                      {gapText}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex gap-2 bg-white p-1 rounded-lg border">
+                    {[1, 2, 3, 4, 5].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() =>
+                          setHodRatings((prev) => ({
+                            ...prev,
+                            [sr.skillId._id]: num,
+                          }))
+                        }
+                        className={`w-10 h-10 rounded-md font-bold transition-all ${hodRatings[sr.skillId._id] === num
+                            ? "bg-teal-600 text-white shadow-lg scale-105"
+                            : "hover:bg-slate-100 text-slate-400"
+                          }`}
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                  {hodRatings[sr.skillId._id] > 0 && (
+                    <span className="text-[10px] font-black text-teal-600 flex items-center gap-1">
+                      <CheckCircle size={12} /> RATED
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- List Component ---
+const FacultySelectionList = ({ onSelect }) => {
+  const [faculties, setFaculties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    fetchFaculties();
+  }, []);
+
+  const fetchFaculties = async () => {
+    setLoading(true);
+    try {
+      // Reusing the same endpoint as FacultyList, or ideally a dedicated one
+      const res = await axios.get("http://localhost:3000/api/allusers");
+      setFaculties(res.data.filter((u) => u.role === "FACULTY"));
+    } catch (err) {
+      console.error("Error fetching faculty", err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAllAssessments();
-  }, []);
+  const filtered = faculties.filter((f) =>
+    f.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const toggleRow = (assessmentId) => {
-    setExpandedRows((prev) => ({
-      ...prev,
-      [assessmentId]: !prev[assessmentId],
-    }));
-  };
+  return (
+    <div className="p-8 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6 text-slate-800">Faculty Assessments</h1>
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "submitted":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
-      case "reviewed":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "draft":
-        return "bg-slate-100 text-slate-700 border-slate-200";
-      default:
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    }
-  };
-
-  const renderStars = (rating) => {
-    return (
-      <div className="flex gap-0.5">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={14}
-            className={
-              star <= rating
-                ? "fill-amber-400 text-amber-400"
-                : "text-slate-300"
-            }
+      <div className="flex justify-between mb-6">
+        <div className="relative w-full max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            placeholder="Search faculty..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
           />
-        ))}
-      </div>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-600 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-slate-600 font-medium">Loading assessments...</p>
         </div>
+        <button onClick={fetchFaculties} className="p-3 bg-white border rounded-xl hover:bg-slate-50">
+          <RefreshCw size={20} className="text-slate-600" />
+        </button>
       </div>
+
+      {loading ? (
+        <div className="text-center py-10">Loading...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map((faculty) => (
+            <div
+              key={faculty._id}
+              onClick={() => onSelect(faculty._id)}
+              className="bg-white p-6 rounded-2xl border border-slate-200 hover:shadow-lg hover:border-teal-500 cursor-pointer transition-all group"
+            >
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-teal-50">
+                  <Users className="text-slate-500 group-hover:text-teal-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-800">{faculty.name}</h3>
+                  <p className="text-sm text-slate-500">{faculty.email}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-full group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                  Evaluate Now →
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- Main Wrapper ---
+const Assessments = () => {
+  const { facultyId } = useParams();
+  const navigate = useNavigate();
+
+  if (facultyId) {
+    return (
+      <AssessmentDetail
+        facultyId={facultyId}
+        onBack={() => navigate("/hod/assessments")}
+      />
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Assessments Overview
-          </h1>
-          <p className="text-slate-600">
-            View skill assessments submitted by faculty
-          </p>
-        </div>
-
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertCircle
-              className="text-red-600 flex-shrink-0 mt-0.5"
-              size={20}
-            />
-            <div>
-              <h3 className="font-medium text-red-900">Error</h3>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-            <button
-              onClick={() => setError("")}
-              className="ml-auto text-red-600 hover:text-red-800"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-lg p-5 shadow-sm border border-slate-200">
-            <div className="text-sm text-slate-600 mb-1">Total Assessments</div>
-            <div className="text-3xl font-bold text-slate-900">
-              {assessments.length}
-            </div>
-          </div>
-          <div className="bg-white rounded-lg p-5 shadow-sm border border-slate-200">
-            <div className="text-sm text-slate-600 mb-1">Submitted</div>
-            <div className="text-3xl font-bold text-emerald-600">
-              {assessments.filter((a) => a.status === "submitted").length}
-            </div>
-          </div>
-          <div className="bg-white rounded-lg p-5 shadow-sm border border-slate-200">
-            <div className="text-sm text-slate-600 mb-1">
-              Total Skills Rated
-            </div>
-            <div className="text-3xl font-bold text-teal-600">
-              {assessments.reduce(
-                (sum, a) => sum + (a.skillRatings?.length || 0),
-                0,
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-          {assessments.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="bg-slate-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ClipboardList className="text-slate-400" size={32} />
-              </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
-                No assessments yet
-              </h3>
-              <p className="text-slate-600">
-                Assessment submissions will appear here
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Faculty
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Skills Assessed
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Submitted Date
-                    </th>
-                    <th className="px-6 py-4 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-100">
-                  {assessments.map((assessment) => (
-                    <React.Fragment key={assessment._id}>
-                      {/* Main Row */}
-                      <tr className="hover:bg-slate-50 transition-colors">
-                        {/* Faculty */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-teal-100 border border-teal-200 rounded-lg flex items-center justify-center">
-                              <User size={18} className="text-teal-600" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-slate-900">
-                                {assessment.facultyId?.name || "N/A"}
-                              </div>
-                              <div className="text-xs text-slate-500">
-                                {assessment.facultyId?.email || ""}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Skills Count */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl font-bold text-teal-600">
-                              {assessment.skillRatings?.length || 0}
-                            </span>
-                            <span className="text-sm text-slate-600">
-                              {assessment.skillRatings?.length === 1
-                                ? "skill"
-                                : "skills"}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex px-3 py-1 rounded-md text-xs font-medium border ${getStatusColor(
-                              assessment.status,
-                            )}`}
-                          >
-                            {assessment.status}
-                          </span>
-                        </td>
-
-                        {/* Date */}
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-slate-900 font-medium">
-                            {assessment.submittedAt
-                              ? new Date(
-                                  assessment.submittedAt,
-                                ).toLocaleDateString("en-US", {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                })
-                              : "-"}
-                          </div>
-                          <div className="text-xs text-slate-500">
-                            {assessment.submittedAt
-                              ? new Date(
-                                  assessment.submittedAt,
-                                ).toLocaleTimeString("en-US", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : ""}
-                          </div>
-                        </td>
-
-                        {/* Expand Button */}
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => toggleRow(assessment._id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-lg transition-colors text-sm font-medium"
-                          >
-                            {expandedRows[assessment._id] ? (
-                              <>
-                                Hide Details
-                                <ChevronUp size={16} />
-                              </>
-                            ) : (
-                              <>
-                                View Details
-                                <ChevronDown size={16} />
-                              </>
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-
-                      {/* Expanded Row - Skill Ratings */}
-                      {expandedRows[assessment._id] && (
-                        <tr>
-                          <td colSpan="5" className="px-6 py-4 bg-slate-50">
-                            <div className="space-y-2">
-                              <h4 className="text-sm font-bold text-slate-900 mb-3">
-                                Skill Ratings:
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {assessment.skillRatings?.map((rating) => (
-                                  <div
-                                    key={rating._id}
-                                    className="bg-white border border-slate-200 rounded-lg p-4 flex items-center justify-between"
-                                  >
-                                    <div className="flex-1">
-                                      <div className="font-semibold text-slate-900 mb-1">
-                                        {rating.skillId?.name ||
-                                          "Unknown Skill"}
-                                      </div>
-                                      <div className="text-xs text-slate-500">
-                                        {rating.skillId?.category || "N/A"}
-                                      </div>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-xl font-bold text-teal-600">
-                                          {rating.selfRating}
-                                        </span>
-                                        <span className="text-sm text-slate-500">
-                                          / 5
-                                        </span>
-                                      </div>
-                                      {renderStars(rating.selfRating)}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  return <FacultySelectionList onSelect={(id) => navigate(`/hod/assessment/${id}`)} />;
 };
 
 export default Assessments;

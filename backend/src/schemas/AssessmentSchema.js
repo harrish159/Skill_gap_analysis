@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 
+// AssessmentSchema.js
 const assessmentSchema = new mongoose.Schema(
   {
     facultyId: {
@@ -14,38 +15,27 @@ const assessmentSchema = new mongoose.Schema(
           ref: "Skill",
           required: true,
         },
-        selfRating: {
+        hodRating: {
           type: Number,
-          required: true,
-          min: 1,
+          default: 0,
+          min: 0,
           max: 5,
+        },
+        gap: {
+          type: Number,
+          default: 0,
         },
       },
     ],
     status: {
       type: String,
-      enum: ["draft", "submitted", "reviewed"],
-      default: "draft",
+      enum: ["pending", "reviewed"],
+      default: "pending",
       lowercase: true,
     },
-    submittedAt: {
-      type: Date,
-    },
-    reviewedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    reviewedAt: {
-      type: Date,
-    },
-    comments: {
-      type: String,
-      trim: true,
-    },
+    reviewedAt: { type: Date },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Assessment", assessmentSchema);

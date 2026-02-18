@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import ProtectedRoute from "../Components/ProtectedRoute";
 
 // Auth Pages
 import Login from "../Pages/login";
@@ -15,13 +16,12 @@ import AdminDashboard from "../Components/admin/adminDashboard";
 import AdminUsers from "../Components/admin/adminUsers";
 
 // Faculty Components
-// import FacultyLayout from "../Components/faculty/facultyLayout";
-// import FacultyDashboard from "../Components/faculty/facultyDashboard";
-// import FacultyProfile from "../Components/faculty/facultyProfile";
-// import FacultySkills from "../Components/faculty/facultySkills";
-// import FacultyAssessment from "../Components/faculty/facultyAssessment";
-// import FacultyGaps from "../Components/faculty/facultyGaps";
-// import FacultyTraining from "../Components/faculty/facultyTraining";
+import FacultyLayout from "../Components/faculty/facultyLayout";
+import FacultyDashboard from "../Components/faculty/facultyDashboard";
+
+import FacultyAssessment from "../Components/faculty/facultyAssessment";
+import FacultyGaps from "../Components/faculty/facultyGaps";
+import FacultyTraining from "../Components/faculty/facultyTraining";
 // import FacultySettings from "../Components/faculty/facultySettings";
 
 // HOD Components
@@ -40,35 +40,56 @@ const AppRoutes = () => {
     <Router>
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>
 
         {/* Faculty Routes */}
-        {/* <Route path="/faculty" element={<FacultyLayout />}>
+        <Route
+          path="/faculty"
+          element={
+            <ProtectedRoute allowedRoles={['faculty', 'admin']}>
+              <FacultyLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/faculty/dashboard" replace />} />
           <Route path="dashboard" element={<FacultyDashboard />} />
-          <Route path="profile" element={<FacultyProfile />} />
-          <Route path="skills" element={<FacultySkills />} />
+
           <Route path="assessment" element={<FacultyAssessment />} />
           <Route path="gaps" element={<FacultyGaps />} />
           <Route path="training" element={<FacultyTraining />} />
-          <Route path="settings" element={<FacultySettings />} />
-        </Route> */}
+          {/* <Route path="settings" element={<FacultySettings />} /> */}
+        </Route>
 
         {/* HOD Routes */}
-        <Route path="/hod" element={<HodLayout />}>
+        <Route
+          path="/hod"
+          element={
+            <ProtectedRoute allowedRoles={['hod', 'admin']}>
+              <HodLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="/hod/dashboard" replace />} />
           <Route path="dashboard" element={<HodDashboard />} />
           <Route path="skills" element={<Skill />} />
           <Route path="mapping" element={<Mapping />} />
           <Route path="assessments" element={<Assessments />} />
+          <Route path="assessment/:facultyId" element={<Assessments />} />
           <Route path="analytics" element={<SkillGapDashboard />} />
           <Route path="training" element={<TrainingHod />} />
           <Route path="faculty" element={<FacultyList />} />
@@ -77,7 +98,7 @@ const AppRoutes = () => {
         </Route>
 
         {/* 404 Route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
