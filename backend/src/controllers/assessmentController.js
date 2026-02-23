@@ -5,15 +5,17 @@ const User = require("../schemas/UserSchema");
 exports.getAssessmentForFaculty = async (req, res) => {
   try {
     const { facultyId } = req.params;
-    console.log(`--> Fetching Assessment for Faculty: ${facultyId}`);
+    const departmentId = req.departmentId; // Injected by restrictToDepartment
 
-    // 1. Fetch ALL Master Skill Mappings to ensure we have a complete list
-    const mappings = await SkillMapping.find()
+    // 1. Fetch Skill Mappings for this department
+    const filter = departmentId ? { departmentId } : {};
+    const mappings = await SkillMapping.find(filter)
       .populate("skillId", "name category description")
       .lean();
 
     // 2. Fetch existing Assessment for this faculty
     const assessment = await Assessment.findOne({ facultyId }).lean();
+    // ... (rest of logic remains same, but using department-specific mappings)
 
     // Create a lookup for existing ratings if they exist
     const ratingLookup = {};
@@ -89,6 +91,7 @@ exports.saveAssessment = async (req, res) => {
       { facultyId },
       {
         facultyId,
+        departmentId: req.departmentId || req.body.departmentId,
         skillRatings: ratingsWithGaps,
         status: "reviewed",
         reviewedAt: new Date(),
@@ -108,7 +111,8 @@ exports.saveAssessment = async (req, res) => {
 };
 exports.getAllAssessments = async (req, res) => {
   try {
-    const assessments = await Assessment.find().populate("facultyId", "name email");
+    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const assessments = await Assessment.find(filter).populate("facultyId", "name email");
     res.status(200).json(assessments);
   } catch (error) {
     res.status(500).json({ message: error.message });

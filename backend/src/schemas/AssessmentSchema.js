@@ -8,6 +8,11 @@ const assessmentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
     skillRatings: [
       {
         skillId: {

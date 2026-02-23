@@ -8,12 +8,24 @@ const skillMappingSchema = new mongoose.Schema(
       required: true,
     },
 
+    facultyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
+
     requiredRating: {
       type: Number,
       min: 1,
       max: 5,
       required: true,
-    }
+    },
   },
   { timestamps: true },
 );
@@ -21,8 +33,8 @@ const skillMappingSchema = new mongoose.Schema(
 module.exports = mongoose.model("SkillMapping", skillMappingSchema);
 
 // requiredLevel: {
-    //   type: String,
-    //   enum: ["beginner", "intermediate", "advanced"],
-    //   required: true,
-    //   lowercase: true,
-    // },
+//   type: String,
+//   enum: ["beginner", "intermediate", "advanced"],
+//   required: true,
+//   lowercase: true,
+// },

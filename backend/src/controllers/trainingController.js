@@ -6,6 +6,7 @@ const Training = require("../schemas/TrainingSchema");
  */
 exports.addTraining = async (req, res) => {
   try {
+    console.log("Adding training program, body:", req.body);
     const {
       title,
       description,
@@ -15,15 +16,24 @@ exports.addTraining = async (req, res) => {
       durationHours,
       skillsCovered,
       targetProficiencyLevel,
+      startDate,
+      deadline,
+      departmentId,
     } = req.body;
 
-    if (!skillsCovered || skillsCovered.length === 0) {
+    if (!skillsCovered || !Array.isArray(skillsCovered) || skillsCovered.length === 0) {
       return res
         .status(400)
         .json({ message: "At least one skill must be covered" });
     }
 
-    const training = await Training.create({
+    const mongoose = require("mongoose");
+    const deptId = new mongoose.Types.ObjectId(departmentId || req.departmentId);
+    if (!deptId && req.user.role !== 'ADMIN') {
+      return res.status(400).json({ message: "Department ID is required" });
+    }
+
+    let training = await Training.create({
       title,
       description,
       provider,
@@ -32,13 +42,34 @@ exports.addTraining = async (req, res) => {
       durationHours,
       skillsCovered,
       targetProficiencyLevel,
+      startDate: startDate || undefined,
+      deadline: deadline || undefined,
+      departmentId: deptId,
     });
+
+    console.log("Training created, populating... ID:", training._id);
+
+    // Populate skill info before sending back
+    training = await Training.findById(training._id).populate(
+      "skillsCovered.skillId",
+      "name category"
+    );
 
     res.status(201).json({
       message: "Training program added successfully",
       training,
     });
   } catch (error) {
+    console.error("ADD TRAINING ERROR:", error);
+
+    // Catch Mongoose specific errors to return 400 instead of 500
+    if (error.name === "ValidationError" || error.name === "CastError") {
+      return res.status(400).json({
+        message: "Invalid data provided: " + error.message,
+        details: error.errors
+      });
+    }
+
     res.status(500).json({ message: error.message });
   }
 };
@@ -49,13 +80,24 @@ exports.addTraining = async (req, res) => {
  */
 exports.getAllTrainings = async (req, res) => {
   try {
-    const trainings = await Training.find({ isActive: true }).populate(
+    console.log("Fetching all trainings. Department filter:", req.departmentId);
+    const mongoose = require("mongoose");
+    const filter = req.departmentId ? { departmentId: new mongoose.Types.ObjectId(req.departmentId), isActive: true } : { isActive: true };
+    console.log("Constructed Filter:", JSON.stringify(filter));
+
+    const trainings = await Training.find(filter).populate(
       "skillsCovered.skillId",
       "name category",
     );
 
+    console.log(`Found ${trainings.length} trainings`);
+    if (trainings.length === 0) {
+      const totalCount = await Training.countDocuments({});
+      console.log(`Diagnostic: Total trainings in DB (unfiltered): ${totalCount}`);
+    }
     res.status(200).json(trainings);
   } catch (error) {
+    console.error("GET TRAININGS ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -66,11 +108,10 @@ exports.getAllTrainings = async (req, res) => {
  */
 exports.getTrainingBySkillAndGap = async (req, res) => {
   try {
-    console.log("Fetching Trainings based on Skill and GapScore...");
     const { skillId, gapScore } = req.params;
-    const gapScoreNum = Number(gapScore); // Convert string to number
+    const gapScoreNum = Number(gapScore);
 
-    const trainings = await Training.find({
+    const filter = {
       isActive: true,
       "skillsCovered.skillId": skillId,
       "skillsCovered.minGapScore": { $lte: gapScoreNum },
@@ -78,11 +119,15 @@ exports.getTrainingBySkillAndGap = async (req, res) => {
         { "skillsCovered.maxGapScore": { $gte: gapScoreNum } },
         { "skillsCovered.maxGapScore": { $exists: false } },
       ],
-    }).populate("skillsCovered.skillId", "name category");
+    };
+
+    if (req.departmentId) filter.departmentId = req.departmentId;
+
+    const trainings = await Training.find(filter).populate("skillsCovered.skillId", "name category");
 
     res.status(200).json(trainings);
   } catch (error) {
-    console.error(error);
+    console.error("RECOMMEND TRAINING ERROR:", error);
     res.status(500).json({ message: "Unable to Retrieve using GapScore" });
   }
 };
@@ -93,9 +138,11 @@ exports.getTrainingBySkillAndGap = async (req, res) => {
  */
 exports.deleteTraining = async (req, res) => {
   try {
+    console.log("Deleting training ID:", req.params.id);
     await Training.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Training deleted successfully" });
   } catch (error) {
+    console.error("DELETE TRAINING ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };

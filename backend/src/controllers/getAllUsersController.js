@@ -6,7 +6,8 @@ const bcrypt = require("bcryptjs");
 // ===============================
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password"); // hide password
+    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const users = await User.find(filter).select("-password").populate("departmentId", "name"); // hide password and populate dept
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -18,10 +19,15 @@ exports.getAllUsers = async (req, res) => {
 // ===============================
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, departmentId } = req.body;
 
     if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Admins dont necessarily need a department, but HOD and Faculty do
+    if (role !== "ADMIN" && !departmentId) {
+      return res.status(400).json({ message: "Department is required for HOD/Faculty" });
     }
 
     const existingUser = await User.findOne({ email });
@@ -34,6 +40,7 @@ exports.registerUser = async (req, res) => {
       email,
       password,
       role,
+      departmentId: role === "ADMIN" ? null : departmentId,
     });
 
     res.status(201).json({
@@ -43,6 +50,7 @@ exports.registerUser = async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        departmentId: newUser.departmentId,
       },
     });
   } catch (error) {
@@ -56,11 +64,17 @@ exports.registerUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, role, isActive } = req.body;
+    const { name, email, role, isActive, departmentId } = req.body;
 
     const updatedUser = await User.findByIdAndUpdate(
       id,
-      { name, email, role, isActive },
+      {
+        name,
+        email,
+        role,
+        isActive,
+        departmentId: role === "ADMIN" ? null : departmentId,
+      },
       { new: true },
     ).select("-password");
 

@@ -13,6 +13,11 @@ const skillGapSchema = new mongoose.Schema(
       ref: "Assessment",
       required: true,
     },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
 
     gaps: [
       {

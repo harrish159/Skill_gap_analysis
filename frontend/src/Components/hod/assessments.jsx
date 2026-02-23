@@ -1,12 +1,128 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { ArrowLeft, Save, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Users, Search, ChevronRight, UserCircle, CheckCircle2 } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
 
-const AssessmentDetail = ({ facultyId, onBack }) => {
+/* ── List View Component ── */
+const AssessmentList = ({ onSelect }) => {
+  const [faculties, setFaculties] = useState([]);
+  const [assessments, setAssessments] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // 1. Fetch all faculty in department
+        const facultyRes = await axios.get("http://localhost:3000/api/allusers");
+        const list = facultyRes.data.filter(u => u.role === "FACULTY");
+        setFaculties(list);
+
+        // 2. Fetch all assessments to show status
+        const assessmentRes = await axios.get("http://localhost:3000/api/assessments");
+        setAssessments(assessmentRes.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load department faculty");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const getStatus = (fId) => {
+    const found = assessments.find(a => a.facultyId?._id === fId);
+    return found ? found.status : "pending";
+  };
+
+  const filteredFaculties = faculties.filter(f =>
+    f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    f.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return (
+    <div style={s.loadingScreen}>
+      <div style={s.loadingSpinner} />
+      <p style={s.loadingText}>Fetching Faculty Records…</p>
+    </div>
+  );
+
+  return (
+    <div style={s.page}>
+      <style>{cssText}</style>
+      <div style={s.container}>
+        <div style={{ ...s.header, justifyContent: 'flex-start', flexWrap: 'nowrap' }}>
+          <div style={s.headerMid}>
+            <h1 style={{ ...s.facultyName, textAlign: 'left' }}>Department Assessments</h1>
+            <p style={{ ...s.subLabel, textAlign: 'left' }}>Review and evaluate faculty skill levels</p>
+          </div>
+        </div>
+
+        {error && <div style={s.errorAlert}>{error}</div>}
+
+        {/* Search */}
+        <div style={s.searchWrap}>
+          <Search size={18} style={s.searchIcon} />
+          <input
+            style={s.searchInput}
+            placeholder="Search faculty by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* List */}
+        <div style={s.listGrid}>
+          {filteredFaculties.length === 0 ? (
+            <div style={s.emptyState}>
+              <Users size={48} color="#cbd5e1" />
+              <p>No faculty members found</p>
+            </div>
+          ) : (
+            filteredFaculties.map(f => {
+              const status = getStatus(f._id);
+              return (
+                <div key={f._id} style={s.memberCard} onClick={() => onSelect(f._id)}>
+                  <div style={s.memberLeft}>
+                    <div style={s.memberAvatar}>{f.name.charAt(0)}</div>
+                    <div>
+                      <h3 style={s.memberName}>{f.name}</h3>
+                      <p style={s.memberEmail}>{f.email}</p>
+                    </div>
+                  </div>
+                  <div style={s.memberRight}>
+                    {status === "reviewed" ? (
+                      <span style={s.statusDone}><CheckCircle2 size={14} /> Reviewed</span>
+                    ) : (
+                      <span style={s.statusPending}>Needs Review</span>
+                    )}
+                    <ChevronRight size={18} color="#94a3b8" />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── Detail View Component ── */
+const AssessmentDetail = ({ facultyId: propId, onBack }) => {
+  const { facultyId: paramId } = useParams();
+  const facultyId = propId || paramId;
+  const navigate = useNavigate();
+
   const [data, setData] = useState(null);
   const [hodRatings, setHodRatings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const goBack = onBack || (() => navigate("/hod/assessments"));
 
   useEffect(() => {
     const fetchSkills = async () => {
@@ -21,6 +137,7 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
         });
         setHodRatings(initial);
       } catch (err) {
+        console.error("Fetch Error:", err);
         alert("Error fetching skills");
       } finally {
         setLoading(false);
@@ -41,7 +158,7 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
       };
       await axios.post("http://localhost:3000/api/assessments/save", payload);
       alert("Assessment saved successfully!");
-      onBack();
+      goBack();
     } catch (err) {
       alert("Save failed");
     } finally {
@@ -63,6 +180,8 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
     );
   }
 
+  if (!data?.facultyId) return <div>Faculty not found</div>;
+
   return (
     <div style={s.page}>
       <style>{cssText}</style>
@@ -71,7 +190,7 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
 
         {/* ── Header ── */}
         <div style={s.header}>
-          <button onClick={onBack} style={s.backBtn} className="back-btn">
+          <button onClick={goBack} style={s.backBtn} className="back-btn">
             <ArrowLeft size={15} strokeWidth={2.5} />
             <span>Back</span>
           </button>
@@ -201,6 +320,18 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
   );
 };
 
+/* ── Main Entry ── */
+const Assessments = () => {
+  const { facultyId } = useParams();
+  const navigate = useNavigate();
+
+  if (facultyId) {
+    return <AssessmentDetail facultyId={facultyId} onBack={() => navigate("/hod/assessments")} />;
+  }
+
+  return <AssessmentList onSelect={(id) => navigate(`/hod/assessment/${id}`)} />;
+};
+
 /* ── Styles ────────────────────────────────────── */
 const s = {
   page: {
@@ -321,6 +452,109 @@ const s = {
   saveBtnDisabled: {
     opacity: 0.55,
     cursor: "not-allowed",
+  },
+
+  /* Search */
+  searchWrap: {
+    position: 'relative',
+    marginBottom: '20px',
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#94a3b8',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px 12px 12px 40px',
+    borderRadius: '12px',
+    border: '1.5px solid #e2e8f0',
+    background: '#fff',
+    fontSize: '14px',
+    outline: 'none',
+    transition: 'all 0.2s',
+  },
+
+  /* list */
+  listGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  memberCard: {
+    background: '#fff',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '16px',
+    padding: '16px 20px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  memberLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '14px',
+  },
+  memberAvatar: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '12px',
+    background: '#f0fdfa',
+    border: '1px solid #99f6e4',
+    color: '#0d9488',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: '700',
+    fontSize: '18px',
+  },
+  memberName: {
+    fontSize: '16px',
+    fontWeight: '700',
+    color: '#0f2a25',
+    margin: 0,
+  },
+  memberEmail: {
+    fontSize: '12px',
+    color: '#94a3b8',
+    margin: 0,
+  },
+  memberRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  statusPending: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#64748b',
+    background: '#f1f5f9',
+    padding: '4px 10px',
+    borderRadius: '8px',
+  },
+  statusDone: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#0d9488',
+    background: '#f0fdfa',
+    padding: '4px 10px',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  emptyState: {
+    padding: '60px 20px',
+    textAlign: 'center',
+    color: '#94a3b8',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '12px',
   },
 
   /* progress */
@@ -538,6 +772,7 @@ const cssText = `
   .skill-card:hover          { box-shadow:0 6px 24px rgba(13,148,136,0.1) !important; transform:translateY(-2px); }
   .rating-btn-item:hover     { background:#f0fdfa !important; border-color:#0d9488 !important; color:#0d9488 !important; }
   .rating-selected:hover     { background:#0f766e !important; }
+  .member-card:hover         { border-color:#0d9488 !important; box-shadow:0 2px 12px rgba(13,148,136,0.1) !important; }
 `;
 
-export default AssessmentDetail;
+export default Assessments;

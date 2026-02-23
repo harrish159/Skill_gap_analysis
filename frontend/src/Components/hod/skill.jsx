@@ -41,7 +41,11 @@ const Skill = () => {
       setError("");
     } catch (error) {
       console.error("Error fetching skills:", error);
-      setError("Failed to load skills");
+      if (error.response?.status === 403 && error.response?.data?.missingDepartment) {
+        setError(error.response.data.message);
+      } else {
+        setError("Failed to load skills");
+      }
     } finally {
       setLoading(false);
     }
@@ -73,7 +77,7 @@ const Skill = () => {
           "http://localhost:3000/api/skills",
           newSkill,
         );
-        setSkills([...skills, res.data]);
+        setSkills([...skills, res.data.skill]);
       }
 
       setNewSkill({

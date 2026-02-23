@@ -32,8 +32,10 @@ const TrainingHod = () => {
     mode: "",
     durationHours: "",
     targetProficiencyLevel: "",
+    startDate: "",
+    deadline: "",
     skillsCovered: [
-      { skillId: "", minGapScore: "", maxGapScore: "", improvesBy: "" },
+      { skillId: "", minGapScore: "1", maxGapScore: "", improvesBy: "1" },
     ],
   });
 
@@ -46,7 +48,11 @@ const TrainingHod = () => {
       setError("");
     } catch (err) {
       console.error("Error fetching training programs:", err);
-      setError("Failed to load training programs");
+      if (err.response?.status === 403 && err.response?.data?.missingDepartment) {
+        setError(err.response.data.message);
+      } else {
+        setError("Failed to load training programs");
+      }
     } finally {
       setLoading(false);
     }
@@ -72,16 +78,39 @@ const TrainingHod = () => {
       !newProgram.title ||
       !newProgram.provider ||
       !newProgram.type ||
-      !newProgram.mode
+      !newProgram.mode ||
+      !newProgram.startDate ||
+      !newProgram.deadline
     ) {
-      setError("Please fill in all required fields");
+      setError("Please fill in all required fields (including Dates)");
       return;
     }
+
+    // Smart Filter: Ignore rows that have no skill selected
+    const validSkills = newProgram.skillsCovered.filter((s) => s.skillId !== "");
+
+    if (validSkills.length === 0) {
+      setError("Please select at least one valid skill for the training.");
+      return;
+    }
+
+    // Validation for non-empty Skill Rows
+    for (const s of validSkills) {
+      if (!s.minGapScore || Number(s.minGapScore) < 1) {
+        setError("Min Gap Score must be at least 1 for all selected skills.");
+        return;
+      }
+      if (!s.improvesBy || Number(s.improvesBy) < 1) {
+        setError("Improves By score must be at least 1 for all selected skills.");
+        return;
+      }
+    }
+
     try {
       const res = await axios.post("http://localhost:3000/api/training", {
         ...newProgram,
         durationHours: Number(newProgram.durationHours),
-        skillsCovered: newProgram.skillsCovered.map((s) => ({
+        skillsCovered: validSkills.map((s) => ({
           ...s,
           minGapScore: Number(s.minGapScore),
           maxGapScore: s.maxGapScore ? Number(s.maxGapScore) : undefined,
@@ -98,13 +127,17 @@ const TrainingHod = () => {
         mode: "",
         durationHours: "",
         targetProficiencyLevel: "",
+        startDate: "",
+        deadline: "",
         skillsCovered: [
-          { skillId: "", minGapScore: "", maxGapScore: "", improvesBy: "" },
+          { skillId: "", minGapScore: "1", maxGapScore: "", improvesBy: "1" },
         ],
       });
       setError("");
     } catch (err) {
-      setError("Failed to add training program");
+      console.error("DEBUG: Add Training Error:", err.response?.data || err);
+      const msg = err.response?.data?.message || "Failed to add training program";
+      setError(msg);
     }
   };
 
@@ -125,7 +158,7 @@ const TrainingHod = () => {
       ...prev,
       skillsCovered: [
         ...prev.skillsCovered,
-        { skillId: "", minGapScore: "", maxGapScore: "", improvesBy: "" },
+        { skillId: "", minGapScore: "1", maxGapScore: "", improvesBy: "1" },
       ],
     }));
   };
@@ -358,6 +391,12 @@ const TrainingHod = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Monitor size={15} className="text-slate-400" />
+                        <span className="text-xs">
+                          {new Date(program.startDate).toLocaleDateString()} – {new Date(program.deadline).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
                         <Award size={15} className="text-slate-400" />
                         <span
                           className={`px-2 py-0.5 rounded-md text-xs font-medium border capitalize ${levelColor(program.targetProficiencyLevel)}`}
@@ -570,11 +609,44 @@ const TrainingHod = () => {
                 </div>
               </div>
 
+              {/* Start Date + Deadline */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Start Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-900"
+                    value={newProgram.startDate}
+                    onChange={(e) =>
+                      setNewProgram({ ...newProgram, startDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1">
+                    Deadline <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full px-3 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-900"
+                    value={newProgram.deadline}
+                    onChange={(e) =>
+                      setNewProgram({ ...newProgram, deadline: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
               {/* Skills Covered */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-sm font-semibold text-slate-700">
                     Skills Covered <span className="text-red-500">*</span>
+                    <span className="ml-2 inline-block px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] rounded border border-amber-100 font-normal">
+                      Set 'Min Gap' to 1 to reach everyone
+                    </span>
                   </label>
                   <button
                     type="button"
@@ -612,7 +684,7 @@ const TrainingHod = () => {
                         min="1"
                         max="5"
                         className="px-2 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                        placeholder="Min Gap"
+                        placeholder="Min Gap to show (default 1)"
                         value={sc.minGapScore}
                         onChange={(e) =>
                           updateSkillRow(index, "minGapScore", e.target.value)
@@ -623,7 +695,7 @@ const TrainingHod = () => {
                         min="1"
                         max="5"
                         className="px-2 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                        placeholder="Max Gap"
+                        placeholder="Max Gap to show (Optional)"
                         value={sc.maxGapScore}
                         onChange={(e) =>
                           updateSkillRow(index, "maxGapScore", e.target.value)

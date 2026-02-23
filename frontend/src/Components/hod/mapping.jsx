@@ -31,7 +31,11 @@ const Mapping = () => {
       const res = await axios.get("http://localhost:3000/api/mappingSkill");
       setMappings(res.data);
     } catch (err) {
-      setError("Failed to load mappings");
+      if (err.response?.status === 403 && err.response?.data?.missingDepartment) {
+        setError(err.response.data.message);
+      } else {
+        setError("Failed to load mappings");
+      }
     } finally {
       setLoading(false);
     }
@@ -177,9 +181,9 @@ const Mapping = () => {
             <div className="text-3xl font-bold text-slate-900">
               {mappings.length > 0
                 ? (
-                    mappings.reduce((sum, m) => sum + m.requiredRating, 0) /
-                    mappings.length
-                  ).toFixed(1)
+                  mappings.reduce((sum, m) => sum + m.requiredRating, 0) /
+                  mappings.length
+                ).toFixed(1)
                 : "0"}
             </div>
           </div>
@@ -348,11 +352,10 @@ const Mapping = () => {
                           requiredRating: String(rating),
                         })
                       }
-                      className={`p-3 rounded-lg border-2 font-bold transition-all ${
-                        newMapping.requiredRating === String(rating)
+                      className={`p-3 rounded-lg border-2 font-bold transition-all ${newMapping.requiredRating === String(rating)
                           ? "bg-teal-600 text-white border-teal-600 shadow-lg scale-105"
                           : "bg-white text-slate-600 border-slate-200 hover:border-teal-300 hover:bg-teal-50"
-                      }`}
+                        }`}
                     >
                       {rating}
                     </button>

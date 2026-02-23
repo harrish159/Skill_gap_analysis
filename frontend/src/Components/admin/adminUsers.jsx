@@ -22,6 +22,7 @@ const AdminUsers = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
+  const [departments, setDepartments] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState("add"); // add | edit | password | promote
@@ -33,6 +34,7 @@ const AdminUsers = () => {
     password: "",
     role: "FACULTY",
     isActive: true,
+    departmentId: "",
   });
 
   /* ============ FETCH USERS ============ */
@@ -51,8 +53,18 @@ const AdminUsers = () => {
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const res = await axios.get("http://localhost:3000/api/departments");
+      setDepartments(res.data);
+    } catch (err) {
+      console.error("Failed to load departments", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchDepartments();
   }, []);
 
   /* ============ FILTER & SEARCH ============ */
@@ -97,8 +109,9 @@ const AdminUsers = () => {
         email: formData.email,
         password: formData.password,
         role: formData.role,
+        departmentId: formData.departmentId,
       });
-      setUsers([...users, res.data.user]);
+      fetchUsers();
       closeModal();
       setError("");
     } catch (err) {
@@ -120,9 +133,10 @@ const AdminUsers = () => {
           email: formData.email,
           role: formData.role,
           isActive: formData.isActive,
+          departmentId: formData.departmentId,
         },
       );
-      setUsers(users.map((u) => (u._id === selectedUser._id ? res.data : u)));
+      fetchUsers();
       closeModal();
       setError("");
     } catch (err) {
@@ -173,9 +187,10 @@ const AdminUsers = () => {
           email: user.email,
           role: user.role,
           isActive: !user.isActive,
+          departmentId: user.departmentId?._id || user.departmentId,
         },
       );
-      setUsers(users.map((u) => (u._id === user._id ? res.data : u)));
+      fetchUsers();
       setError("");
     } catch (err) {
       setError("Failed to update user status");
@@ -192,9 +207,10 @@ const AdminUsers = () => {
           email: selectedUser.email,
           role: "HOD",
           isActive: selectedUser.isActive,
+          departmentId: selectedUser.departmentId?._id || selectedUser.departmentId,
         },
       );
-      setUsers(users.map((u) => (u._id === selectedUser._id ? res.data : u)));
+      fetchUsers();
       closeModal();
       setError("");
     } catch (err) {
@@ -211,6 +227,7 @@ const AdminUsers = () => {
       password: "",
       role: "FACULTY",
       isActive: true,
+      departmentId: "",
     });
     setShowModal(true);
   };
@@ -224,6 +241,7 @@ const AdminUsers = () => {
       password: "",
       role: user.role,
       isActive: user.isActive,
+      departmentId: user.departmentId?._id || user.departmentId || "",
     });
     setShowModal(true);
   };
@@ -250,6 +268,7 @@ const AdminUsers = () => {
       password: "",
       role: "FACULTY",
       isActive: true,
+      departmentId: "",
     });
   };
 
@@ -441,6 +460,11 @@ const AdminUsers = () => {
                             </div>
                             <div className="text-xs text-slate-500">
                               {user.email}
+                              {user.departmentId && (
+                                <span className="ml-2 text-teal-600 font-medium">
+                                  • {user.departmentId.name || "N/A"}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -460,11 +484,10 @@ const AdminUsers = () => {
                       <td className="px-6 py-4">
                         <button
                           onClick={() => handleToggleActive(user)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                            user.isActive
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-                              : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${user.isActive
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                            }`}
                         >
                           <Power size={12} />
                           {user.isActive ? "Active" : "Inactive"}
@@ -661,6 +684,32 @@ const AdminUsers = () => {
                       <option value="ADMIN">Admin</option>
                     </select>
                   </div>
+
+                  {/* Department */}
+                  {formData.role !== "ADMIN" && (
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Department <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.departmentId}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            departmentId: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 bg-white text-slate-900"
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map((dept) => (
+                          <option key={dept._id} value={dept._id}>
+                            {dept.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   {/* Status (Edit mode only) */}
                   {modalMode === "edit" && (

@@ -6,6 +6,16 @@ const ApprovalRequestSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  departmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Department",
+    required: true,
+  },
+  trainingId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Training",
+    required: false,
+  },
   requestedCourse: {
     type: String,
     required: true,

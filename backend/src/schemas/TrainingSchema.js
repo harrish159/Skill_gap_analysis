@@ -7,7 +7,11 @@ const trainingSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
     description: {
       type: String,
       trim: true,
@@ -76,6 +80,14 @@ const trainingSchema = new mongoose.Schema(
       required: true,
     },
 
+    startDate: {
+      type: Date,
+      required: false,
+    },
+    deadline: {
+      type: Date,
+      required: false,
+    },
     isActive: {
       type: Boolean,
       default: true,

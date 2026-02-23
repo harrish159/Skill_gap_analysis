@@ -24,6 +24,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: function () {
+        return this.role !== "ADMIN";
+      },
+    },
   },
   { timestamps: true },
 );

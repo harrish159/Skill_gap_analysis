@@ -38,7 +38,11 @@ const Approval = () => {
       setError("");
     } catch (error) {
       console.error("Error fetching approval requests", error);
-      setError("Failed to load approval requests");
+      if (error.response?.status === 403 && error.response?.data?.missingDepartment) {
+        setError(error.response.data.message);
+      } else {
+        setError("Failed to load approval requests");
+      }
     } finally {
       setLoading(false);
     }
@@ -293,6 +297,21 @@ const Approval = () => {
                               <span className="text-sm text-slate-900 font-semibold">
                                 {request.requestedCourse}
                               </span>
+                              {request.trainingId && (
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                                    {request.trainingId.provider}
+                                  </span>
+                                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">
+                                    {request.trainingId.type}
+                                  </span>
+                                  {request.trainingId.durationHours && (
+                                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-teal-50 text-teal-600 rounded">
+                                      {request.trainingId.durationHours}h · {request.trainingId.mode}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 

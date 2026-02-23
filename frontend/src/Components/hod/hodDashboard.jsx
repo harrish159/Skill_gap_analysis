@@ -24,8 +24,22 @@ const HodDashboard = () => {
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [userData, setUserData] = useState(null);
+
+  const getTimeGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good Morning";
+    if (h < 18) return "Good Afternoon";
+    return "Good Evening";
+  };
 
   useEffect(() => {
+    // Parse stored user
+    try {
+      const stored = sessionStorage.getItem("user");
+      if (stored) setUserData(JSON.parse(stored));
+    } catch { }
+
     fetchDashboardData();
   }, []);
 
@@ -96,7 +110,11 @@ const HodDashboard = () => {
       setError("");
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      setError("Failed to load dashboard data");
+      if (error.response?.status === 403 && error.response?.data?.missingDepartment) {
+        setError(error.response.data.message);
+      } else {
+        setError("Failed to load dashboard data. Please ensure you are logged in and have a department assigned.");
+      }
     } finally {
       setLoading(false);
     }
@@ -171,11 +189,25 @@ const HodDashboard = () => {
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
-          <p className="text-slate-600">
-            Overview of department skill development
-          </p>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              {getTimeGreeting()}, {userData?.name || "HOD"}
+            </h1>
+            <p className="text-slate-600">
+              Overview of department skill development and faculty progress
+            </p>
+          </div>
+          {/* User badge */}
+          <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-4 py-3 shadow-sm flex-shrink-0">
+            <div className="w-10 h-10 bg-teal-100 border border-teal-200 rounded-lg flex items-center justify-center">
+              <Users className="text-teal-600" size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] text-teal-600 font-bold uppercase tracking-wider mb-0.5">{userData?.departmentName || "Head of Department"}</p>
+              <p className="text-sm font-bold text-slate-900">{userData?.name || "HOD"}</p>
+            </div>
+          </div>
         </div>
 
         {/* Error Alert */}
@@ -212,11 +244,10 @@ const HodDashboard = () => {
                   <stat.icon size={24} />
                 </div>
                 <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold ${
-                    stat.isPositive
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                      : "bg-red-50 text-red-700 border border-red-200"
-                  }`}
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold ${stat.isPositive
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-red-50 text-red-700 border border-red-200"
+                    }`}
                 >
                   {stat.isPositive ? (
                     <ArrowUp size={12} />
@@ -356,8 +387,8 @@ const HodDashboard = () => {
               <p className="text-2xl font-bold text-slate-900 mb-1">
                 {stats.totalFaculty > 0
                   ? Math.round(
-                      (stats.completedAssessments / stats.totalFaculty) * 100,
-                    )
+                    (stats.completedAssessments / stats.totalFaculty) * 100,
+                  )
                   : 0}
                 %
               </p>

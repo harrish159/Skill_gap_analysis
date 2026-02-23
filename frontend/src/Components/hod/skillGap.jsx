@@ -25,7 +25,11 @@ const SkillGapDashboard = () => {
       setError("");
     } catch (err) {
       console.error(err);
-      setError("Failed to load skill gaps");
+      if (err.response?.status === 403 && err.response?.data?.missingDepartment) {
+        setError(err.response.data.message);
+      } else {
+        setError("Failed to load skill gaps");
+      }
     } finally {
       setLoading(false);
     }
@@ -274,11 +278,10 @@ const SkillGapDashboard = () => {
                               {/* Current */}
                               <td className="px-6 py-4 text-center">
                                 <span
-                                  className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold border ${
-                                    gap.currentRating >= gap.requiredRating
+                                  className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold border ${gap.currentRating >= gap.requiredRating
                                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                       : "bg-red-50 text-red-700 border-red-200"
-                                  }`}
+                                    }`}
                                 >
                                   {gap.currentRating}
                                 </span>

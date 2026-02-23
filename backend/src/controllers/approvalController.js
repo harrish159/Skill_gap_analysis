@@ -7,7 +7,7 @@ const SkillGap = require("../schemas/SkillGapSchema");
 // =============================
 exports.createTrainingRequest = async (req, res) => {
   try {
-    const { facultyId, skillId } = req.body;
+    const { facultyId, skillId, trainingId } = req.body;
 
     if (!facultyId || !skillId) {
       return res.status(400).json({
@@ -15,16 +15,19 @@ exports.createTrainingRequest = async (req, res) => {
       });
     }
 
-    // Check for existing pending request for this specific skill
-    const existingPending = await ApprovalRequest.findOne({
+    // Check for existing pending request for this specific skill/training
+    const query = {
       facultyId,
       status: "Pending",
       "requestedSkills.skillId": skillId
-    });
+    };
+    if (trainingId) query.trainingId = trainingId;
+
+    const existingPending = await ApprovalRequest.findOne(query);
 
     if (existingPending) {
       return res.status(400).json({
-        message: "A training request for this skill is already pending approval",
+        message: "A matching training request is already pending approval",
       });
     }
 
@@ -49,10 +52,21 @@ exports.createTrainingRequest = async (req, res) => {
       });
     }
 
+    let requestedCourse = `Training for ${gap.skillId.name}`;
+
+    // If specific trainingId is provided, fetch its title
+    if (trainingId) {
+      const Training = require("../schemas/TrainingSchema");
+      const targetTraining = await Training.findById(trainingId);
+      if (targetTraining) {
+        requestedCourse = `Program: ${targetTraining.title}`;
+      }
+    }
+
     // Create approval request
     const approvalRequest = new ApprovalRequest({
       facultyId,
-      requestedCourse: `Training for ${gap.skillId.name}`,
+      requestedCourse,
       requestedWorkshop: null,
       requestedSkills: [
         {
@@ -60,7 +74,9 @@ exports.createTrainingRequest = async (req, res) => {
           gapScore: gap.gapScore,
         },
       ],
+      trainingId: trainingId || null,
       status: "Pending",
+      departmentId: req.user.departmentId,
       createdAt: new Date(),
     });
 
@@ -114,6 +130,7 @@ exports.createApprovalRequest = async (req, res) => {
       requestedWorkshop: requestedWorkshop || null,
       requestedSkills,
       status: "Pending", // ensure default
+      departmentId: req.user.departmentId,
       createdAt: new Date(),
     });
 
@@ -131,9 +148,11 @@ exports.createApprovalRequest = async (req, res) => {
 
 exports.GetAllRequests = async (req, res) => {
   try {
-    const requests = await ApprovalRequest.find()
+    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const requests = await ApprovalRequest.find(filter)
       .populate("facultyId", "name email role department")
       .populate("requestedSkills.skillId", "name category")
+      .populate("trainingId")
       .sort({ createdAt: -1 });
     console.log(requests);
     res.status(200).json(requests);
@@ -145,9 +164,12 @@ exports.GetAllRequests = async (req, res) => {
 
 exports.getPendingRequestsForHOD = async (req, res) => {
   try {
-    const requests = await ApprovalRequest.find({ status: "Pending" })
+    const filter = { status: "Pending" };
+    if (req.departmentId) filter.departmentId = req.departmentId;
+    const requests = await ApprovalRequest.find(filter)
       .populate("facultyId", "name email role")
       .populate("requestedSkills.skillId", "name category")
+      .populate("trainingId")
       .sort({ createdAt: -1 });
     console.log(requests);
     res.status(200).json(requests);

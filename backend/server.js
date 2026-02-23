@@ -19,9 +19,10 @@ app.use(express.json());
 // Routes
 app.use("/api/auth", auth);
 app.use("/api", skill);
- app.use("/api", getAllUserRoutes);
+app.use("/api", getAllUserRoutes);
 app.use("/api", require("./src/routes/mappingRoutes"));
 app.use("/api/assessments", assessmentRoutes);
+app.use("/api/departments", require("./src/routes/departmentRoutes"));
 app.use("/api", require("./src/routes/skillgapRoutes"));
 app.use("/api", require("./src/routes/recommendationRoutes"));
 app.use("/api", require("./src/routes/trainingRoutes"));

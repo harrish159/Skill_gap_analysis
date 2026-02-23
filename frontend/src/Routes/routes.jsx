@@ -14,6 +14,7 @@ import Login from "../Pages/login";
 import AdminLayout from "../Components/admin/adminLayout";
 import AdminDashboard from "../Components/admin/adminDashboard";
 import AdminUsers from "../Components/admin/adminUsers";
+import AdminDepartments from "../Components/admin/adminDepartments";
 
 // Faculty Components
 import FacultyLayout from "../Components/faculty/facultyLayout";
@@ -55,6 +56,7 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="departments" element={<AdminDepartments />} />
         </Route>
 
         {/* Faculty Routes */}

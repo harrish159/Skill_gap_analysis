@@ -6,8 +6,8 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // 1. Find user
-    const user = await User.findOne({ email });
+    // 1. Find user and populate department
+    const user = await User.findOne({ email }).populate("departmentId");
     if (!user) {
       console.log("User Not Found");
       return res.status(400).json({ message: "User not found" });
@@ -28,7 +28,7 @@ exports.login = async (req, res) => {
 
     // 4. JWT
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, departmentId: user.departmentId },
       process.env.JWT_SECRET,
       { expiresIn: "1d" },
     );
@@ -44,6 +44,8 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        departmentId: user.departmentId?._id || user.departmentId,
+        departmentName: user.departmentId?.name || "No Department",
       },
     });
   } catch (error) {

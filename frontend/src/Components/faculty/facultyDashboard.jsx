@@ -151,7 +151,7 @@ const FacultyDashboard = () => {
               <User className="text-teal-600" size={20} />
             </div>
             <div>
-              <p className="text-xs text-slate-500 font-medium">Logged in as</p>
+              <p className="text-[10px] text-teal-600 font-bold uppercase tracking-wider mb-0.5">{userData?.departmentName || "Faculty Member"}</p>
               <p className="text-sm font-bold text-slate-900">{userData?.name || "Faculty"}</p>
             </div>
           </div>

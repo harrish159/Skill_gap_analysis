@@ -26,7 +26,14 @@ const skillSchema = new mongoose.Schema(
 
     createdBy: {
       type: String,
-       required: true,},
+      required: true,
+    },
+
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
   },
   {
     timestamps: true,

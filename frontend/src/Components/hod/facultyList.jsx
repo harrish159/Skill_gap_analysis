@@ -24,6 +24,9 @@ const FacultyList = () => {
       setFaculties(facultyMembers);
     } catch (error) {
       console.error("Error fetching faculties", error);
+      if (error.response?.status === 403 && error.response?.data?.missingDepartment) {
+        alert(error.response.data.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -202,16 +205,14 @@ const FacultyList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          faculty.isActive
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${faculty.isActive
                             ? "bg-emerald-100 text-emerald-800"
                             : "bg-slate-100 text-slate-800"
-                        }`}
+                          }`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            faculty.isActive ? "bg-emerald-500" : "bg-slate-500"
-                          }`}
+                          className={`w-1.5 h-1.5 rounded-full ${faculty.isActive ? "bg-emerald-500" : "bg-slate-500"
+                            }`}
                         ></span>
                         {faculty.isActive ? "Active" : "Inactive"}
                       </span>

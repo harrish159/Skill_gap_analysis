@@ -3,23 +3,18 @@ const Skill = require("../schemas/SkillSchema");
 const addSkill = async (req, res) => {
   try {
     const { name, category, description, createdBy } = req.body;
+    const departmentId = req.departmentId || req.body.departmentId;
 
     const newSkill = new Skill({
       name,
       category,
       description,
       createdBy,
+      departmentId,
     });
-
-    console.log(req.body);
-
 
     await newSkill.save();
-
-    res.status(201).json({
-      message: "Skill added successfully",
-      skill: newSkill,
-    });
+    res.status(201).json({ message: "Skill added successfully", skill: newSkill });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -27,7 +22,8 @@ const addSkill = async (req, res) => {
 
 const getSkill = async (req, res) => {
   try {
-    const skills = await Skill.find();
+    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const skills = await Skill.find(filter);
     res.status(200).json(skills);
   } catch (error) {
     res.status(500).json({ message: error.message });

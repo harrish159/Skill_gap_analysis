@@ -8,7 +8,8 @@ const SkillMapping = require("../schemas/SkillMappingSchema");
  */
 const getAllSkillGaps = async (req, res) => {
   try {
-    const skillGaps = await SkillGap.find()
+    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const skillGaps = await SkillGap.find(filter)
       .populate("facultyId", "name email role")
       .populate("assessmentId")
       .populate("gaps.skillId", "name category");
@@ -73,6 +74,7 @@ const calculateGapsForAssessment = async (assessment) => {
       { assessmentId: assessment._id },
       {
         facultyId,
+        departmentId: assessment.departmentId,
         assessmentId: assessment._id,
         gaps,
         totalGaps: gaps.length,
