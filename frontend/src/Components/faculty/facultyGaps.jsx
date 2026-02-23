@@ -326,8 +326,8 @@ const FacultyGaps = () => {
                 key={label}
                 onClick={() => setFilter(label)}
                 className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filter === label
-                    ? "bg-teal-600 text-white shadow-sm"
-                    : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
+                  ? "bg-teal-600 text-white shadow-sm"
+                  : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
                   }`}
               >
                 {label}

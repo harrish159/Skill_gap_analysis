@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useParams, useNavigate } from "react-router-dom";
-import { Save, ArrowLeft, Loader2, Target, CheckCircle, Search, Users, RefreshCw } from "lucide-react";
+import { ArrowLeft, Save, Loader2 } from "lucide-react";
 
-// --- Detail Component ---
 const AssessmentDetail = ({ facultyId, onBack }) => {
   const [data, setData] = useState(null);
   const [hodRatings, setHodRatings] = useState({});
@@ -14,11 +12,9 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
     const fetchSkills = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/assessments/faculty/${facultyId}`,
+          `http://localhost:3000/api/assessments/faculty/${facultyId}`
         );
         setData(res.data);
-
-        // Initialize the local state with existing ratings
         const initial = {};
         res.data.skillRatings.forEach((sr) => {
           initial[sr.skillId._id] = sr.hodRating;
@@ -37,7 +33,7 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
     setSaving(true);
     try {
       const payload = {
-        facultyId: facultyId,
+        facultyId,
         ratings: Object.keys(hodRatings).map((sId) => ({
           skillId: sId,
           hodRating: hodRatings[sId],
@@ -53,211 +49,495 @@ const AssessmentDetail = ({ facultyId, onBack }) => {
     }
   };
 
-  if (loading)
-    return <div className="p-10 text-center">Loading Assessment Data...</div>;
+  const ratedCount = Object.values(hodRatings).filter((v) => v > 0).length;
+  const totalCount = data?.skillRatings?.length || 0;
+  const progressPct = totalCount > 0 ? Math.round((ratedCount / totalCount) * 100) : 0;
+
+  if (loading) {
+    return (
+      <div style={s.loadingScreen}>
+        <div style={s.loadingSpinner} />
+        <p style={s.loadingText}>Loading Assessment…</p>
+        <style>{cssText}</style>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 mb-6 text-slate-500 hover:text-black"
-      >
-        <ArrowLeft size={20} /> Back to List
-      </button>
+    <div style={s.page}>
+      <style>{cssText}</style>
 
-      <div className="bg-white rounded-3xl shadow-xl border p-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-black">{data.facultyId.name}</h1>
-            <p className="text-slate-500">
-              Evaluating against Master Skill Mappings
-            </p>
+      <div style={s.container}>
+
+        {/* ── Header ── */}
+        <div style={s.header}>
+          <button onClick={onBack} style={s.backBtn} className="back-btn">
+            <ArrowLeft size={15} strokeWidth={2.5} />
+            <span>Back</span>
+          </button>
+
+          <div style={s.headerMid}>
+            <span style={s.evalChip}>HOD EVALUATION</span>
+            <h1 style={s.facultyName}>{data.facultyId.name}</h1>
+            <p style={s.subLabel}>Skill Assessment · Department Standards</p>
           </div>
+
           <button
             onClick={handleSave}
             disabled={saving}
-            className="bg-teal-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-teal-700 disabled:opacity-50"
+            style={{ ...s.saveBtn, ...(saving ? s.saveBtnDisabled : {}) }}
+            className="save-btn"
           >
-            {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-            Save Assessment
+            {saving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+            <span>{saving ? "Saving…" : "Save Assessment"}</span>
           </button>
         </div>
 
-        <div className="space-y-4">
-          {data.skillRatings.map((sr) => {
-            const currentRating = hodRatings[sr.skillId._id] || 0;
+        {/* ── Progress strip ── */}
+        <div style={s.progressCard}>
+          <div style={s.progressLeft}>
+            <span style={s.progressTitle}>Evaluation Progress</span>
+            <span style={s.progressSub}>{ratedCount} of {totalCount} skills rated</span>
+          </div>
+          <div style={s.progressTrack}>
+            <div style={{ ...s.progressFill, width: `${progressPct}%` }} />
+          </div>
+          <span style={s.progressPct}>{progressPct}%</span>
+        </div>
+
+        {/* ── Skill Cards ── */}
+        <div style={s.grid}>
+          {data.skillRatings.map((sr, idx) => {
+            const current = hodRatings[sr.skillId._id] || 0;
             const required = sr.requiredRating;
-            const gap = currentRating > 0 ? currentRating - required : null;
+            const gap = current > 0 ? current - required : null;
 
-            let gapColor = "text-slate-400";
-            let gapBg = "bg-slate-50";
-            let gapText = "Pending";
-
+            let badge = { label: "Not Rated", color: "#94a3b8", bg: "#f8fafc", border: "#e2e8f0" };
             if (gap !== null) {
-              if (gap < 0) {
-                gapColor = "text-red-600";
-                gapBg = "bg-red-50 border-red-200";
-                gapText = `Gap: ${gap}`;
-              } else if (gap === 0) {
-                gapColor = "text-teal-600";
-                gapBg = "bg-teal-50 border-teal-200";
-                gapText = "Standard Met";
-              } else {
-                gapColor = "text-blue-600";
-                gapBg = "bg-blue-50 border-blue-200";
-                gapText = `Exceeds: +${gap}`;
-              }
+              if (gap < 0) badge = { label: `Gap ${gap}`, color: "#ef4444", bg: "#fff5f5", border: "#fecaca" };
+              else if (gap === 0) badge = { label: "Meets Standard", color: "#0d9488", bg: "#f0fdfa", border: "#99f6e4" };
+              else badge = { label: `Exceeds +${gap}`, color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
             }
 
             return (
               <div
                 key={sr.skillId._id}
-                className="p-6 border rounded-2xl flex items-center justify-between hover:bg-slate-50 transition-all"
+                style={{
+                  ...s.card,
+                  borderColor: current > 0 ? badge.border : "#e2e8f0",
+                  animationDelay: `${idx * 55}ms`,
+                }}
+                className="skill-card"
               >
-                <div>
-                  <span className="text-[10px] font-bold uppercase text-teal-600 bg-teal-50 px-2 py-1 rounded">
-                    {sr.skillId.category}
+                {/* Card header */}
+                <div style={s.cardTop}>
+                  <div>
+                    <span style={s.categoryTag}>{sr.skillId.category}</span>
+                    <h3 style={s.skillName}>{sr.skillId.name}</h3>
+                  </div>
+                  <span style={{ ...s.gapBadge, color: badge.color, background: badge.bg, borderColor: badge.border }}>
+                    {badge.label}
                   </span>
-                  <h3 className="text-xl font-bold mt-1">{sr.skillId.name}</h3>
-                  <div className="flex items-center gap-4 mt-2">
-                    <div className="flex items-center gap-2 text-slate-500 text-sm font-bold">
-                      <Target size={14} /> Required: {required}
-                    </div>
-                    {/* Gap Indicator */}
-                    <div className={`px-3 py-1 rounded-full text-xs font-black uppercase border ${gapBg} ${gapColor}`}>
-                      {gapText}
-                    </div>
+                </div>
+
+                {/* Required row */}
+                <div style={s.reqRow}>
+                  <span style={s.reqLabel}>Required level</span>
+                  <div style={s.pipRow}>
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <div key={n} style={{ ...s.pip, background: n <= required ? "#0d9488" : "#e2e8f0" }} />
+                    ))}
+                    <span style={s.reqNum}>{required}</span>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex gap-2 bg-white p-1 rounded-lg border">
-                    {[1, 2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        onClick={() =>
-                          setHodRatings((prev) => ({
-                            ...prev,
-                            [sr.skillId._id]: num,
-                          }))
-                        }
-                        className={`w-10 h-10 rounded-md font-bold transition-all ${hodRatings[sr.skillId._id] === num
-                            ? "bg-teal-600 text-white shadow-lg scale-105"
-                            : "hover:bg-slate-100 text-slate-400"
-                          }`}
-                      >
-                        {num}
-                      </button>
-                    ))}
+                <div style={s.divider} />
+
+                {/* Rating buttons */}
+                <div style={s.ratingRow}>
+                  <span style={s.ratingLabel}>Your Rating</span>
+                  <div style={s.btnGroup}>
+                    {[1, 2, 3, 4, 5].map(num => {
+                      const selected = current === num;
+                      const filled = num < current;
+                      return (
+                        <button
+                          key={num}
+                          onClick={() => setHodRatings(prev => ({ ...prev, [sr.skillId._id]: num }))}
+                          style={{
+                            ...s.ratingBtn,
+                            ...(selected ? s.ratingSelected : {}),
+                            ...(filled && !selected ? s.ratingFilled : {}),
+                          }}
+                          className={selected ? "rating-selected" : "rating-btn-item"}
+                        >
+                          {num}
+                        </button>
+                      );
+                    })}
                   </div>
-                  {hodRatings[sr.skillId._id] > 0 && (
-                    <span className="text-[10px] font-black text-teal-600 flex items-center gap-1">
-                      <CheckCircle size={12} /> RATED
-                    </span>
-                  )}
                 </div>
               </div>
             );
           })}
         </div>
+
+        {/* ── Footer ── */}
+        <div style={s.footer}>
+          <span style={s.footerNote}>{totalCount - ratedCount} skills remaining</span>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{ ...s.saveBtn, ...s.saveBtnLg, ...(saving ? s.saveBtnDisabled : {}) }}
+            className="save-btn"
+          >
+            {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />}
+            <span>{saving ? "Saving…" : "Save & Submit Assessment"}</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );
 };
 
-// --- List Component ---
-const FacultySelectionList = ({ onSelect }) => {
-  const [faculties, setFaculties] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+/* ── Styles ────────────────────────────────────── */
+const s = {
+  page: {
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    minHeight: "100vh",
+    background: "#f0f4f3",
+    color: "#0f2a25",
+  },
+  container: {
+    maxWidth: "980px",
+    margin: "0 auto",
+    padding: "36px 24px 80px",
+  },
 
-  useEffect(() => {
-    fetchFaculties();
-  }, []);
+  /* loading */
+  loadingScreen: {
+    fontFamily: "'DM Sans', sans-serif",
+    minHeight: "100vh",
+    background: "#f0f4f3",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "14px",
+  },
+  loadingSpinner: {
+    width: "34px",
+    height: "34px",
+    border: "3px solid #ccebe7",
+    borderTop: "3px solid #0d9488",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+  },
+  loadingText: {
+    color: "#64748b",
+    fontSize: "13px",
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    margin: 0,
+  },
 
-  const fetchFaculties = async () => {
-    setLoading(true);
-    try {
-      // Reusing the same endpoint as FacultyList, or ideally a dedicated one
-      const res = await axios.get("http://localhost:3000/api/allusers");
-      setFaculties(res.data.filter((u) => u.role === "FACULTY"));
-    } catch (err) {
-      console.error("Error fetching faculty", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  /* header */
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "28px",
+    gap: "16px",
+    flexWrap: "wrap",
+  },
+  backBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    background: "#fff",
+    border: "1.5px solid #e2e8f0",
+    color: "#475569",
+    padding: "8px 16px",
+    borderRadius: "10px",
+    fontSize: "13px",
+    fontWeight: "500",
+    fontFamily: "inherit",
+    cursor: "pointer",
+    transition: "all 0.18s",
+  },
+  headerMid: {
+    flex: 1,
+    textAlign: "center",
+    minWidth: "180px",
+  },
+  evalChip: {
+    display: "inline-block",
+    fontSize: "10px",
+    letterSpacing: "0.18em",
+    fontWeight: "600",
+    color: "#0d9488",
+    background: "#f0fdfa",
+    border: "1px solid #99f6e4",
+    borderRadius: "20px",
+    padding: "3px 10px",
+    marginBottom: "8px",
+    textTransform: "uppercase",
+  },
+  facultyName: {
+    fontSize: "26px",
+    fontWeight: "700",
+    color: "#0f2a25",
+    margin: "0 0 3px",
+    letterSpacing: "-0.02em",
+  },
+  subLabel: {
+    fontSize: "12px",
+    color: "#94a3b8",
+    margin: 0,
+  },
+  saveBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "7px",
+    background: "#0d9488",
+    border: "none",
+    color: "#fff",
+    padding: "10px 20px",
+    borderRadius: "10px",
+    fontSize: "13px",
+    fontWeight: "600",
+    fontFamily: "inherit",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    boxShadow: "0 2px 12px rgba(13,148,136,0.25)",
+    transition: "all 0.18s",
+  },
+  saveBtnLg: {
+    padding: "12px 28px",
+    fontSize: "14px",
+    borderRadius: "12px",
+  },
+  saveBtnDisabled: {
+    opacity: 0.55,
+    cursor: "not-allowed",
+  },
 
-  const filtered = faculties.filter((f) =>
-    f.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  /* progress */
+  progressCard: {
+    background: "#fff",
+    border: "1.5px solid #e2e8f0",
+    borderRadius: "14px",
+    padding: "16px 22px",
+    marginBottom: "24px",
+    display: "flex",
+    alignItems: "center",
+    gap: "18px",
+    flexWrap: "wrap",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+  },
+  progressLeft: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    minWidth: "160px",
+  },
+  progressTitle: {
+    fontSize: "11px",
+    letterSpacing: "0.1em",
+    textTransform: "uppercase",
+    color: "#94a3b8",
+    fontWeight: "600",
+  },
+  progressSub: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#334155",
+  },
+  progressTrack: {
+    flex: 1,
+    height: "6px",
+    background: "#e2e8f0",
+    borderRadius: "99px",
+    overflow: "hidden",
+    minWidth: "80px",
+  },
+  progressFill: {
+    height: "100%",
+    background: "linear-gradient(90deg, #0d9488, #14b8a6)",
+    borderRadius: "99px",
+    transition: "width 0.4s ease",
+  },
+  progressPct: {
+    fontSize: "13px",
+    fontWeight: "700",
+    color: "#0d9488",
+    minWidth: "36px",
+    textAlign: "right",
+  },
 
-  return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-slate-800">Faculty Assessments</h1>
+  /* grid */
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))",
+    gap: "14px",
+  },
 
-      <div className="flex justify-between mb-6">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500"
-            placeholder="Search faculty..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <button onClick={fetchFaculties} className="p-3 bg-white border rounded-xl hover:bg-slate-50">
-          <RefreshCw size={20} className="text-slate-600" />
-        </button>
-      </div>
+  /* card */
+  card: {
+    background: "#ffffff",
+    border: "1.5px solid #e2e8f0",
+    borderRadius: "16px",
+    padding: "22px 24px",
+    boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+    transition: "box-shadow 0.2s, border-color 0.2s, transform 0.15s",
+    animation: "fadeUp 0.38s ease both",
+  },
+  cardTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "14px",
+    gap: "12px",
+  },
+  categoryTag: {
+    display: "block",
+    fontSize: "10px",
+    letterSpacing: "0.14em",
+    textTransform: "uppercase",
+    color: "#0d9488",
+    fontWeight: "600",
+    marginBottom: "4px",
+  },
+  skillName: {
+    fontSize: "15px",
+    fontWeight: "700",
+    color: "#0f2a25",
+    margin: 0,
+    letterSpacing: "-0.01em",
+    lineHeight: "1.35",
+  },
+  gapBadge: {
+    fontSize: "11px",
+    fontWeight: "600",
+    padding: "4px 10px",
+    borderRadius: "7px",
+    border: "1.5px solid",
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+  },
 
-      {loading ? (
-        <div className="text-center py-10">Loading...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((faculty) => (
-            <div
-              key={faculty._id}
-              onClick={() => onSelect(faculty._id)}
-              className="bg-white p-6 rounded-2xl border border-slate-200 hover:shadow-lg hover:border-teal-500 cursor-pointer transition-all group"
-            >
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center group-hover:bg-teal-50">
-                  <Users className="text-slate-500 group-hover:text-teal-600" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">{faculty.name}</h3>
-                  <p className="text-sm text-slate-500">{faculty.email}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-xs font-bold text-teal-600 bg-teal-50 px-3 py-1 rounded-full group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                  Evaluate Now →
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  /* required pips */
+  reqRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "14px",
+  },
+  reqLabel: {
+    fontSize: "11px",
+    color: "#94a3b8",
+    letterSpacing: "0.04em",
+  },
+  pipRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  },
+  pip: {
+    width: "20px",
+    height: "4px",
+    borderRadius: "2px",
+    transition: "background 0.2s",
+  },
+  reqNum: {
+    fontSize: "11px",
+    fontWeight: "700",
+    color: "#0d9488",
+    marginLeft: "8px",
+  },
+
+  divider: {
+    height: "1px",
+    background: "#f1f5f9",
+    marginBottom: "16px",
+  },
+
+  /* rating */
+  ratingRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+  },
+  ratingLabel: {
+    fontSize: "11px",
+    color: "#94a3b8",
+    letterSpacing: "0.04em",
+    flexShrink: 0,
+  },
+  btnGroup: {
+    display: "flex",
+    gap: "6px",
+  },
+  ratingBtn: {
+    width: "38px",
+    height: "38px",
+    borderRadius: "9px",
+    border: "1.5px solid #e2e8f0",
+    background: "#f8fafc",
+    color: "#94a3b8",
+    fontSize: "14px",
+    fontWeight: "600",
+    fontFamily: "inherit",
+    cursor: "pointer",
+    transition: "all 0.15s ease",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ratingFilled: {
+    background: "#f0fdfa",
+    borderColor: "#99f6e4",
+    color: "#0d9488",
+  },
+  ratingSelected: {
+    background: "#0d9488",
+    borderColor: "#0d9488",
+    color: "#fff",
+    boxShadow: "0 2px 10px rgba(13,148,136,0.3)",
+    transform: "scale(1.1)",
+  },
+
+  /* footer */
+  footer: {
+    marginTop: "36px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: "20px",
+    borderTop: "1.5px solid #e2e8f0",
+    paddingTop: "26px",
+  },
+  footerNote: {
+    fontSize: "13px",
+    color: "#94a3b8",
+  },
 };
 
-// --- Main Wrapper ---
-const Assessments = () => {
-  const { facultyId } = useParams();
-  const navigate = useNavigate();
-
-  if (facultyId) {
-    return (
-      <AssessmentDetail
-        facultyId={facultyId}
-        onBack={() => navigate("/hod/assessments")}
-      />
-    );
+const cssText = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
+  @keyframes spin   { to { transform: rotate(360deg); } }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0);    }
   }
+  .spin { animation: spin 0.8s linear infinite; }
+  .back-btn:hover            { background:#f0fdfa !important; border-color:#0d9488 !important; color:#0d9488 !important; }
+  .save-btn:hover            { background:#0f766e !important; box-shadow:0 4px 16px rgba(13,148,136,0.35) !important; }
+  .skill-card:hover          { box-shadow:0 6px 24px rgba(13,148,136,0.1) !important; transform:translateY(-2px); }
+  .rating-btn-item:hover     { background:#f0fdfa !important; border-color:#0d9488 !important; color:#0d9488 !important; }
+  .rating-selected:hover     { background:#0f766e !important; }
+`;
 
-  return <FacultySelectionList onSelect={(id) => navigate(`/hod/assessment/${id}`)} />;
-};
-
-export default Assessments;
+export default AssessmentDetail;
