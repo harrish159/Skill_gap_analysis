@@ -1,6 +1,7 @@
 const Assessment = require("../schemas/AssessmentSchema");
 const SkillMapping = require("../schemas/SkillMappingSchema");
 const User = require("../schemas/UserSchema");
+const mongoose = require("mongoose");
 
 exports.getAssessmentForFaculty = async (req, res) => {
   try {
@@ -8,7 +9,11 @@ exports.getAssessmentForFaculty = async (req, res) => {
     const departmentId = req.departmentId; // Injected by restrictToDepartment
 
     // 1. Fetch Skill Mappings for this department
-    const filter = departmentId ? { departmentId } : {};
+    const filter = {};
+    if (departmentId) {
+      const deptIdStr = departmentId._id ? departmentId._id.toString() : departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
     const mappings = await SkillMapping.find(filter)
       .populate("skillId", "name category description")
       .lean();
@@ -46,7 +51,7 @@ exports.getAssessmentForFaculty = async (req, res) => {
     console.log(`--> Returning ${formattedRatings.length} skills (Merged with Master Mappings)`);
 
     // 4. Get faculty details
-    const faculty = await User.findById(facultyId).select("name email role").lean();
+    const faculty = await User.findById(facultyId).select("name email role departmentId").lean();
 
     res.status(200).json({
       facultyId: faculty,
@@ -87,11 +92,14 @@ exports.saveAssessment = async (req, res) => {
       };
     });
 
+    const effectiveDeptId = req.departmentId || req.body.departmentId;
+    const deptObjectId = effectiveDeptId ? new mongoose.Types.ObjectId(effectiveDeptId._id ? effectiveDeptId._id.toString() : effectiveDeptId.toString()) : null;
+
     const assessment = await Assessment.findOneAndUpdate(
       { facultyId },
       {
         facultyId,
-        departmentId: req.departmentId || req.body.departmentId,
+        departmentId: deptObjectId,
         skillRatings: ratingsWithGaps,
         status: "reviewed",
         reviewedAt: new Date(),
@@ -111,7 +119,11 @@ exports.saveAssessment = async (req, res) => {
 };
 exports.getAllAssessments = async (req, res) => {
   try {
-    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const filter = {};
+    if (req.departmentId) {
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
     const assessments = await Assessment.find(filter).populate("facultyId", "name email");
     res.status(200).json(assessments);
   } catch (error) {

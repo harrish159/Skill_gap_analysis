@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Wrench,
@@ -13,6 +14,14 @@ import {
 } from "lucide-react";
 
 const HodSidebar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    console.log("Logging out...");
+    sessionStorage.clear();
+    navigate("/login");
+  };
+
   return (
     <aside className="w-[280px] h-screen bg-[#1e293b] border-r border-slate-700 flex flex-col shadow-lg">
       {/* Header */}
@@ -56,7 +65,10 @@ const HodSidebar = () => {
       <div className="border-t border-slate-700 p-4 bg-slate-800/30">
         <div className="space-y-1">
           <NavItem to="/hod/profile" icon={User} label="Profile" />
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group"
+          >
             <LogOut
               size={18}
               className="transition-transform group-hover:translate-x-0.5"

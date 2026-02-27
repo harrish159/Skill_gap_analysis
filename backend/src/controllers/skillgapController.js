@@ -1,6 +1,7 @@
 const Assessment = require("../schemas/AssessmentSchema");
 const SkillGap = require("../schemas/SkillGapSchema");
 const SkillMapping = require("../schemas/SkillMappingSchema");
+const mongoose = require("mongoose");
 
 /**
  * @desc   Fetch all skill gap records (HOD / Admin)
@@ -8,7 +9,12 @@ const SkillMapping = require("../schemas/SkillMappingSchema");
  */
 const getAllSkillGaps = async (req, res) => {
   try {
-    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const filter = {};
+    if (req.departmentId) {
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
+
     const skillGaps = await SkillGap.find(filter)
       .populate("facultyId", "name email role")
       .populate("assessmentId")

@@ -148,7 +148,11 @@ exports.createApprovalRequest = async (req, res) => {
 
 exports.GetAllRequests = async (req, res) => {
   try {
-    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const filter = {};
+    if (req.departmentId) {
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
     const requests = await ApprovalRequest.find(filter)
       .populate("facultyId", "name email role department")
       .populate("requestedSkills.skillId", "name category")
@@ -165,7 +169,10 @@ exports.GetAllRequests = async (req, res) => {
 exports.getPendingRequestsForHOD = async (req, res) => {
   try {
     const filter = { status: "Pending" };
-    if (req.departmentId) filter.departmentId = req.departmentId;
+    if (req.departmentId) {
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
     const requests = await ApprovalRequest.find(filter)
       .populate("facultyId", "name email role")
       .populate("requestedSkills.skillId", "name category")

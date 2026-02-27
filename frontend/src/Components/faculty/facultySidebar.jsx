@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   User,
@@ -12,6 +12,15 @@ import {
 } from "lucide-react";
 
 const FacultySidebar = () => {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // Clear all session storage
+    sessionStorage.clear();
+
+    navigate("/login");
+  };
+
   return (
     <aside className="w-[280px] h-screen bg-[#1e293b] border-r border-slate-700 flex flex-col shadow-lg">
       {/* Header */}
@@ -51,7 +60,10 @@ const FacultySidebar = () => {
       <div className="border-t border-slate-700 p-4 bg-slate-800/30">
         <div className="space-y-1">
           <NavItem to="/faculty/settings" icon={Settings} label="Settings" />
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 group"
+          >
             <LogOut
               size={18}
               className="transition-transform group-hover:translate-x-0.5"
@@ -68,9 +80,10 @@ const NavItem = ({ to, icon: Icon, label }) => (
   <NavLink
     to={to}
     className={({ isActive }) =>
-      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${isActive
-        ? "bg-slate-700 text-white"
-        : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+      `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+        isActive
+          ? "bg-slate-700 text-white"
+          : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
       }`
     }
   >
@@ -78,8 +91,9 @@ const NavItem = ({ to, icon: Icon, label }) => (
       <>
         <Icon
           size={18}
-          className={`${isActive ? "text-teal-400" : "text-slate-400"
-            } transition-colors flex-shrink-0`}
+          className={`${
+            isActive ? "text-teal-400" : "text-slate-400"
+          } transition-colors flex-shrink-0`}
         />
         <span>{label}</span>
       </>

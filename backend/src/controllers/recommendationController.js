@@ -1,6 +1,7 @@
 const SkillGap = require("../schemas/SkillGapSchema");
 const Training = require("../schemas/TrainingSchema");
 const ApprovalRequest = require("../schemas/ApprovalSchema");
+const mongoose = require("mongoose");
 
 exports.getTrainingRecommendations = async (req, res) => {
   try {
@@ -15,7 +16,8 @@ exports.getTrainingRecommendations = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    const deptId = skillGap.departmentId || skillGap.facultyId?.departmentId;
+    const deptIdRaw = skillGap.departmentId || skillGap.facultyId?.departmentId;
+    const deptId = deptIdRaw ? new mongoose.Types.ObjectId(deptIdRaw._id ? deptIdRaw._id.toString() : deptIdRaw.toString()) : null;
 
     // Get all approval requests for this faculty
     const approvalRequests = await ApprovalRequest.find({ facultyId })

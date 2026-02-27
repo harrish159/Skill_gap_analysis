@@ -1,4 +1,5 @@
 const SkillMapping = require("../schemas/SkillMappingSchema");
+const mongoose = require("mongoose");
 
 /**
  * POST: Add or update required skill rating
@@ -7,14 +8,17 @@ const SkillMapping = require("../schemas/SkillMappingSchema");
 exports.addOrUpdateSkillMapping = async (req, res) => {
   try {
     const { skillId, requiredRating } = req.body;
-    const departmentId = req.departmentId || req.body.departmentId;
+    const effectiveDeptId = req.departmentId || req.body.departmentId;
 
-    if (!skillId || !requiredRating || !departmentId) {
+    if (!skillId || !requiredRating || !effectiveDeptId) {
       return res.status(400).json({ message: "Missing fields: skillId, requiredRating, or departmentId" });
     }
 
+    const deptIdStr = effectiveDeptId._id ? effectiveDeptId._id.toString() : effectiveDeptId.toString();
+    const deptObjectId = new mongoose.Types.ObjectId(deptIdStr);
+
     const mapping = await SkillMapping.findOneAndUpdate(
-      { skillId, departmentId },
+      { skillId, departmentId: deptObjectId },
       { requiredRating, facultyId: req.user.id }, // HOD is usually the facultyId in this context or it represents the mapper
       { upsert: true, new: true },
     );
@@ -30,7 +34,11 @@ exports.addOrUpdateSkillMapping = async (req, res) => {
  */
 exports.getSkillMappings = async (req, res) => {
   try {
-    const filter = req.departmentId ? { departmentId: req.departmentId } : {};
+    const filter = {};
+    if (req.departmentId) {
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
     const mappings = await SkillMapping.find(filter).populate("skillId");
     res.status(200).json(mappings);
   } catch (error) {
@@ -43,7 +51,11 @@ exports.getSkillMappings = async (req, res) => {
 exports.deleteSkillMapping = async (req, res) => {
   try {
     const { id } = req.params;
-    const filter = req.departmentId ? { _id: id, departmentId: req.departmentId } : { _id: id };
+    const filter = { _id: id };
+    if (req.departmentId) {
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
 
     const result = await SkillMapping.findOneAndDelete(filter);
 

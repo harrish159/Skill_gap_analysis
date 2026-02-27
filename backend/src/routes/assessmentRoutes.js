@@ -15,6 +15,6 @@ router.get("/", protect, authorize("hod", "admin"), assessmentController.getAllA
 router.get("/faculty/:facultyId", protect, restrictToDepartment, authorize("hod", "faculty", "admin"), assessmentController.getAssessmentForFaculty);
 
 // Path: POST /api/assessments/save (HOD only)
-router.post("/save", protect, authorize("hod", "admin"), assessmentController.saveAssessment);
+router.post("/save", protect, restrictToDepartment, authorize("hod", "admin"), assessmentController.saveAssessment);
 
 module.exports = router;

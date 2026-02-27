@@ -1,4 +1,5 @@
 const Training = require("../schemas/TrainingSchema");
+const mongoose = require("mongoose");
 
 /**
  * @desc   Add new training program
@@ -27,11 +28,14 @@ exports.addTraining = async (req, res) => {
         .json({ message: "At least one skill must be covered" });
     }
 
-    const mongoose = require("mongoose");
-    const deptId = new mongoose.Types.ObjectId(departmentId || req.departmentId);
-    if (!deptId && req.user.role !== 'ADMIN') {
+    // Use departmentId from body if provided (admin) or from req (hod)
+    const effectiveDeptId = departmentId || req.departmentId;
+
+    if (!effectiveDeptId && req.user.role !== 'ADMIN') {
       return res.status(400).json({ message: "Department ID is required" });
     }
+
+    const deptObjectId = effectiveDeptId ? new mongoose.Types.ObjectId(effectiveDeptId) : null;
 
     let training = await Training.create({
       title,
@@ -44,7 +48,7 @@ exports.addTraining = async (req, res) => {
       targetProficiencyLevel,
       startDate: startDate || undefined,
       deadline: deadline || undefined,
-      departmentId: deptId,
+      departmentId: deptObjectId,
     });
 
     console.log("Training created, populating... ID:", training._id);
@@ -81,8 +85,14 @@ exports.addTraining = async (req, res) => {
 exports.getAllTrainings = async (req, res) => {
   try {
     console.log("Fetching all trainings. Department filter:", req.departmentId);
-    const mongoose = require("mongoose");
-    const filter = req.departmentId ? { departmentId: new mongoose.Types.ObjectId(req.departmentId), isActive: true } : { isActive: true };
+
+    const filter = { isActive: true };
+    if (req.departmentId) {
+      // Robust check: if req.departmentId is already an object with _id, use that
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
+
     console.log("Constructed Filter:", JSON.stringify(filter));
 
     const trainings = await Training.find(filter).populate(
@@ -118,10 +128,14 @@ exports.getTrainingBySkillAndGap = async (req, res) => {
       $or: [
         { "skillsCovered.maxGapScore": { $gte: gapScoreNum } },
         { "skillsCovered.maxGapScore": { $exists: false } },
+        { "skillsCovered.maxGapScore": null }
       ],
     };
 
-    if (req.departmentId) filter.departmentId = req.departmentId;
+    if (req.departmentId) {
+      const deptIdStr = req.departmentId._id ? req.departmentId._id.toString() : req.departmentId.toString();
+      filter.departmentId = new mongoose.Types.ObjectId(deptIdStr);
+    }
 
     const trainings = await Training.find(filter).populate("skillsCovered.skillId", "name category");
 
