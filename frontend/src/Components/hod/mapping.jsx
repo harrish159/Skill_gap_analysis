@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link2, Plus, X, Trash2, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Mapping = () => {
   const [skills, setSkills] = useState([]);
