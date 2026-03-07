@@ -341,7 +341,7 @@ const s = {
     color: "#0f2a25",
   },
   container: {
-    maxWidth: "980px",
+    maxWidth: "950px",
     margin: "0 auto",
     padding: "36px 24px 80px",
   },
