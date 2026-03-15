@@ -11,6 +11,7 @@ import {
   Target,
   Star,
   Filter,
+  Sparkles,
 } from "lucide-react";
 
 const FacultyGaps = () => {
@@ -75,34 +76,19 @@ const FacultyGaps = () => {
         };
       default:
         return {
-          label: "Low",
-          badge: "bg-yellow-100 text-yellow-700 border border-yellow-200",
-          bar: "bg-gradient-to-r from-yellow-400 to-yellow-300",
-          dot: "bg-yellow-400",
-          cardBg: "bg-yellow-50/40",
-          iconBg: "bg-yellow-100",
-          iconColor: "text-yellow-600",
-          gapColor: "text-yellow-600",
-          topBorder: "border-t-2 border-t-yellow-400",
+          label: "Strong Skill",
+          badge: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+          bar: "bg-gradient-to-r from-emerald-500 to-emerald-400",
+          dot: "bg-emerald-500",
+          cardBg: "bg-emerald-50/40",
+          iconBg: "bg-emerald-100",
+          iconColor: "text-emerald-600",
+          gapColor: "text-emerald-600",
+          topBorder: "border-t-2 border-t-emerald-400",
         };
     }
   };
 
-  const renderStars = (value, max = 5) => (
-    <div className="flex gap-0.5">
-      {Array.from({ length: max }).map((_, i) => (
-        <Star
-          key={i}
-          size={13}
-          className={
-            i < value
-              ? "fill-amber-400 text-amber-400"
-              : "fill-slate-200 text-slate-200"
-          }
-        />
-      ))}
-    </div>
-  );
 
   const catIcons = {
     Technical: "💻",
@@ -297,9 +283,9 @@ const FacultyGaps = () => {
 
             <div className="flex gap-6 flex-wrap">
               {[
-                { label: "Critical", count: highCount, dot: "bg-red-500" },
-                { label: "Moderate", count: medCount, dot: "bg-amber-400" },
-                { label: "Low", count: lowCount, dot: "bg-yellow-300" },
+                { label: "High Gap", count: highCount, dot: "bg-red-500" },
+                { label: "Moderate Gap", count: medCount, dot: "bg-amber-400" },
+                { label: "Strong Skill", count: lowCount, dot: "bg-emerald-400" },
               ].map(({ label, count, dot }) => (
                 <div key={label} className="flex items-center gap-2 text-sm text-slate-600">
                   <div className={`w-2.5 h-2.5 rounded-full ${dot}`} />
@@ -320,12 +306,12 @@ const FacultyGaps = () => {
               { label: "All", count: gaps.length },
               { label: "Critical", count: highCount },
               { label: "Moderate", count: medCount },
-              { label: "Low", count: lowCount },
+              { label: "Strong", count: lowCount },
             ].map(({ label, count }) => (
               <button
                 key={label}
-                onClick={() => setFilter(label)}
-                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filter === label
+                onClick={() => setFilter(label === "Strong" ? "Strong" : label)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filter === label || (label === "Strong" && filter === "Low")
                   ? "bg-teal-600 text-white shadow-sm"
                   : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:shadow-sm"
                   }`}
@@ -354,9 +340,7 @@ const FacultyGaps = () => {
                   Math.round((gap.currentRating / gap.requiredRating) * 100),
                   100
                 );
-                const gapPct = Math.round(
-                  (gap.gapScore / gap.requiredRating) * 100
-                );
+                const gapVal = Math.max(gap.requiredRating - gap.currentRating, 0);
                 const cat = gap.skillId?.category || "Other";
 
                 return (
@@ -391,43 +375,33 @@ const FacultyGaps = () => {
                               </div>
                             </div>
 
-                            {/* Gap % Badge */}
+                            {/* Gap Value Badge */}
                             <div className={`flex-shrink-0 text-center px-4 py-2 rounded-xl ${sc.cardBg} border border-slate-200`}>
                               <p className={`text-2xl font-black leading-none ${sc.gapColor}`}>
-                                {gapPct}%
+                                -{gapVal}%
                               </p>
-                              <p className="text-xs text-slate-500 mt-0.5 font-medium">gap</p>
+                              <p className="text-xs text-slate-500 mt-0.5 font-medium">Gap</p>
                             </div>
                           </div>
 
-                          {/* Stars Row */}
+                          {/* Scores Row */}
                           <div className="flex items-center gap-6 mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
                             <div className="text-center">
-                              <p className="text-xs text-slate-500 font-medium mb-1">Current</p>
-                              <div className="flex items-center gap-1.5">
-                                {renderStars(gap.currentRating)}
-                                <span className="text-xs font-bold text-slate-700">
-                                  {gap.currentRating}/5
-                                </span>
-                              </div>
+                              <p className="text-xs text-slate-500 font-medium mb-1">Your Score</p>
+                              <p className="text-lg font-bold text-slate-800">{gap.currentRating}%</p>
                             </div>
-
-                            <div className="flex-1 flex items-center gap-2">
-                              <div className="flex-1 h-px bg-slate-200"></div>
-                              <span className={`text-sm font-black ${sc.gapColor} bg-white border border-slate-200 px-2 py-1 rounded-lg`}>
-                                +{gap.gapScore}
-                              </span>
-                              <div className="flex-1 h-px bg-slate-200"></div>
+                            
+                            <div className="flex-1 flex items-center justify-center">
+                               <div className="h-px bg-slate-200 w-full relative">
+                                  <div className={`absolute left-1/2 -top-3 px-2 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-bold ${sc.gapColor}`}>
+                                    Gap: {gapVal}%
+                                  </div>
+                               </div>
                             </div>
 
                             <div className="text-center">
-                              <p className="text-xs text-slate-500 font-medium mb-1">Required</p>
-                              <div className="flex items-center gap-1.5">
-                                {renderStars(gap.requiredRating)}
-                                <span className="text-xs font-bold text-slate-700">
-                                  {gap.requiredRating}/5
-                                </span>
-                              </div>
+                              <p className="text-xs text-slate-500 font-medium mb-1">Target Score</p>
+                              <p className="text-lg font-bold text-slate-800">{gap.requiredRating}%</p>
                             </div>
                           </div>
 
@@ -444,10 +418,23 @@ const FacultyGaps = () => {
                               />
                             </div>
                             <div className="flex justify-between text-xs text-slate-400 mt-1.5">
-                              <span>Current: {gap.currentRating}</span>
-                              <span>Target: {gap.requiredRating}</span>
+                              <span>Assess. Score: {gap.currentRating}%</span>
+                              <span>Target: {gap.requiredRating}%</span>
                             </div>
                           </div>
+
+                          {/* HOD Feedback */}
+                          {gap.comments && (
+                            <div className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+                              <p className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                                <Sparkles size={10} />
+                                Reviewer Feedback
+                              </p>
+                              <p className="text-sm text-slate-700 italic leading-relaxed">
+                                "{gap.comments}"
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -30,14 +30,14 @@ const skillGapSchema = new mongoose.Schema(
         requiredRating: {
           type: Number,
           min: 0,
-          max: 5,
+          max: 100,
           required: true,
         },
 
         currentRating: {
           type: Number,
           min: 0,
-          max: 5,
+          max: 100,
           required: true,
         },
 
@@ -51,6 +51,10 @@ const skillGapSchema = new mongoose.Schema(
           type: String,
           enum: ["low", "medium", "high"],
           required: true,
+        },
+        comments: {
+          type: String,
+          default: "",
         },
       },
     ],

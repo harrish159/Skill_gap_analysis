@@ -54,20 +54,20 @@ const trainingSchema = new mongoose.Schema(
         minGapScore: {
           type: Number,
           min: 1,
-          max: 5,
+          max: 100,
           required: true,
         },
 
         maxGapScore: {
           type: Number,
           min: 1,
-          max: 5,
+          max: 100,
         },
 
         improvesBy: {
           type: Number,
           min: 1,
-          max: 5,
+          max: 100,
           required: true,
         },
       },

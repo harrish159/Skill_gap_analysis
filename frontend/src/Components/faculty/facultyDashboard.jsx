@@ -63,8 +63,9 @@ const FacultyDashboard = () => {
         const trainings = trainingRes.status === "fulfilled" ? (trainingRes.value.data || []) : [];
         const assessments = assessRes.status === "fulfilled" ? (assessRes.value.data.skillRatings || []) : [];
 
-        const avgProf = assessments.length > 0
-          ? (assessments.reduce((a, c) => a + (c.hodRating || 0), 0) / assessments.length).toFixed(1)
+        const validAssessments = assessments.filter(c => c.hodRating !== undefined && c.hodRating !== null);
+        const avgProf = validAssessments.length > 0
+          ? Math.round(validAssessments.reduce((a, c) => a + c.hodRating, 0) / validAssessments.length)
           : 0;
 
         setStats({
@@ -101,7 +102,7 @@ const FacultyDashboard = () => {
   const dashboardStats = [
     {
       title: "Avg Proficiency",
-      value: `${stats.avgProficiency}/5`,
+      value: `${stats.avgProficiency}%`,
       icon: Target,
       color: "bg-blue-100 text-blue-600",
       borderColor: "border-blue-200",
@@ -305,7 +306,7 @@ const FacultyDashboard = () => {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-slate-50 rounded-lg border border-slate-200">
-              <p className="text-2xl font-bold text-slate-900 mb-1">{stats.avgProficiency}/5</p>
+              <p className="text-2xl font-bold text-slate-900 mb-1">{stats.avgProficiency}%</p>
               <p className="text-sm text-slate-600">Avg Proficiency</p>
             </div>
             <div className="text-center p-4 bg-slate-50 rounded-lg border border-slate-200">

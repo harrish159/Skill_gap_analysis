@@ -22,13 +22,16 @@ const assessmentSchema = new mongoose.Schema(
         },
         hodRating: {
           type: Number,
-          default: 0,
           min: 0,
-          max: 5,
+          max: 100,
         },
         gap: {
           type: Number,
           default: 0,
+        },
+        comments: {
+          type: String,
+          default: "",
         },
       },
     ],
@@ -38,6 +41,46 @@ const assessmentSchema = new mongoose.Schema(
       default: "pending",
       lowercase: true,
     },
+    attemptsHistory: [
+      {
+        skillId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Skill",
+          required: true,
+        },
+        score: {
+          type: Number,
+          required: true,
+        },
+        attemptNumber: {
+          type: Number,
+          required: true,
+          default: 1,
+        },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
+    retakeRequests: [
+      {
+        skillId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Skill",
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: ["pending", "approved", "rejected"],
+          default: "pending",
+        },
+        requestDate: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     reviewedAt: { type: Date },
   },
   { timestamps: true },

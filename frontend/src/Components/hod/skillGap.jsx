@@ -270,20 +270,20 @@ const SkillGapDashboard = () => {
 
                               {/* Required */}
                               <td className="px-6 py-4 text-center">
-                                <span className="inline-flex items-center justify-center w-8 h-8 bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700">
-                                  {gap.requiredRating}
+                                <span className="inline-flex items-center justify-center px-2 min-w-[3rem] h-10 bg-slate-100 border border-slate-200 rounded-lg font-bold text-slate-700">
+                                  {gap.requiredRating}%
                                 </span>
                               </td>
 
                               {/* Current */}
                               <td className="px-6 py-4 text-center">
                                 <span
-                                  className={`inline-flex items-center justify-center w-8 h-8 rounded-lg font-bold border ${gap.currentRating >= gap.requiredRating
+                                  className={`inline-flex items-center justify-center px-2 min-w-[3rem] h-10 rounded-lg font-bold border ${gap.currentRating >= gap.requiredRating
                                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                       : "bg-red-50 text-red-700 border-red-200"
                                     }`}
                                 >
-                                  {gap.currentRating}
+                                  {gap.currentRating}%
                                 </span>
                               </td>
 
@@ -292,7 +292,7 @@ const SkillGapDashboard = () => {
                                 <span
                                   className={`font-bold text-lg ${config.text}`}
                                 >
-                                  -{gap.gapScore}
+                                  -{gap.gapScore}%
                                 </span>
                               </td>
 

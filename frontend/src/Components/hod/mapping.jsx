@@ -86,17 +86,13 @@ const Mapping = () => {
 
   /* ================= RATING STARS ================= */
 
-  const renderStars = (rating) => {
+  const renderProgress = (rating) => {
     return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <span
-            key={star}
-            className={star <= rating ? "text-amber-400" : "text-gray-300"}
-          >
-            ★
-          </span>
-        ))}
+      <div className="w-32 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+        <div
+          className="bg-teal-500 h-full transition-all"
+          style={{ width: `${rating}%` }}
+        />
       </div>
     );
   };
@@ -262,14 +258,13 @@ const Mapping = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-2xl font-bold text-teal-600">
-                            {map.requiredRating}
+                          <span className="text-xl font-bold text-teal-600">
+                            {map.requiredRating}%
                           </span>
-                          <span className="text-sm text-slate-500">/ 5</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        {renderStars(map.requiredRating)}
+                        {renderProgress(map.requiredRating)}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
@@ -337,36 +332,33 @@ const Mapping = () => {
                 </select>
               </div>
 
-              {/* Rating Selection */}
               <div className="mb-6">
                 <label className="block mb-2 text-sm font-semibold text-slate-700">
-                  Required Rating Level
+                  Required Proficiency (0-100%)
                 </label>
-                <div className="grid grid-cols-5 gap-2">
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <button
-                      key={rating}
-                      type="button"
-                      onClick={() =>
-                        setNewMapping({
-                          ...newMapping,
-                          requiredRating: String(rating),
-                        })
-                      }
-                      className={`p-3 rounded-lg border-2 font-bold transition-all ${newMapping.requiredRating === String(rating)
-                          ? "bg-teal-600 text-white border-teal-600 shadow-lg scale-105"
-                          : "bg-white text-slate-600 border-slate-200 hover:border-teal-300 hover:bg-teal-50"
-                        }`}
-                    >
-                      {rating}
-                    </button>
-                  ))}
-                </div>
-                {newMapping.requiredRating && (
-                  <div className="mt-3 flex justify-center">
-                    {renderStars(Number(newMapping.requiredRating))}
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    step="1"
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                    value={newMapping.requiredRating || 50}
+                    onChange={(e) =>
+                      setNewMapping({
+                        ...newMapping,
+                        requiredRating: e.target.value,
+                      })
+                    }
+                  />
+                  <div className="flex justify-between mt-2">
+                    <span className="text-xs text-slate-400">0%</span>
+                    <span className="text-sm font-bold text-teal-600">
+                      {newMapping.requiredRating || 50}%
+                    </span>
+                    <span className="text-xs text-slate-400">100%</span>
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Action Buttons */}

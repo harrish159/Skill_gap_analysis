@@ -26,7 +26,10 @@ const Skill = () => {
     name: "",
     category: "",
     description: "",
+    proficiencyLevel: "Beginner",
     createdBy: "HOD",
+    targetScore: 80,
+    noOfMcqs: 10,
   });
 
   useEffect(() => {
@@ -84,7 +87,10 @@ const Skill = () => {
         name: "",
         category: "",
         description: "",
+        proficiencyLevel: "Beginner",
         createdBy: "HOD",
+        targetScore: 80,
+        noOfMcqs: 10,
       });
       setShowModal(false);
       setEditMode(false);
@@ -101,7 +107,10 @@ const Skill = () => {
       name: skill.name,
       category: skill.category,
       description: skill.description || "",
+      proficiencyLevel: skill.proficiencyLevel || "Beginner",
       createdBy: skill.createdBy,
+      targetScore: skill.targetScore || 80,
+      noOfMcqs: skill.noOfMcqs || 10,
     });
     setEditingId(skill._id);
     setEditMode(true);
@@ -190,7 +199,10 @@ const Skill = () => {
                   name: "",
                   category: "",
                   description: "",
+                  proficiencyLevel: "Beginner",
                   createdBy: "HOD",
+                  targetScore: 80,
+                  noOfMcqs: 10,
                 });
               }}
               className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2.5 rounded-lg font-medium shadow-sm hover:bg-teal-700 transition-colors"
@@ -311,22 +323,44 @@ const Skill = () => {
                       <h3 className="text-base font-bold text-slate-900 truncate">
                         {skill.name}
                       </h3>
-                      <span
-                        className={`inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium border ${getCategoryColor(skill.category)}`}
-                      >
-                        {skill.category}
-                      </span>
+                      <div className="flex gap-2 flex-wrap">
+                        <span
+                          className={`inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium border ${getCategoryColor(skill.category)}`}
+                        >
+                          {skill.category}
+                        </span>
+                        <span
+                          className={`inline-block mt-1 px-2 py-0.5 rounded-md text-xs font-medium border ${
+                            skill.proficiencyLevel === "Advanced" ? "bg-red-50 text-red-700 border-red-200" :
+                            skill.proficiencyLevel === "Intermediate" ? "bg-orange-50 text-orange-700 border-orange-200" :
+                            "bg-green-50 text-green-700 border-green-200"
+                          }`}
+                        >
+                          {skill.proficiencyLevel || "Beginner"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {skill.description && (
-                  <p className="text-sm text-slate-600 mb-3 line-clamp-2 leading-relaxed">
+                  <p className="text-sm text-slate-600 mb-4 line-clamp-2 leading-relaxed">
                     {skill.description}
                   </p>
                 )}
 
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">Target Score</p>
+                    <p className="text-sm font-bold text-teal-600">{skill.targetScore || 80}%</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-0.5">MCQ Count</p>
+                    <p className="text-sm font-bold text-slate-700">{skill.noOfMcqs || 10} Qns</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center text-slate-700 text-xs font-bold">
                       {skill.createdBy.charAt(0)}
@@ -401,24 +435,79 @@ const Skill = () => {
                   />
                 </div>
 
-                {/* Category */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Category <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={newSkill.category}
-                    onChange={(e) =>
-                      setNewSkill({ ...newSkill, category: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-900 transition-all bg-white"
-                  >
-                    <option value="">Select category</option>
-                    <option value="Technical">Technical</option>
-                    <option value="Teaching">Teaching</option>
-                    <option value="Research">Research</option>
-                    <option value="Soft Skill">Soft Skill</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newSkill.category}
+                      onChange={(e) =>
+                        setNewSkill({ ...newSkill, category: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-900 transition-all bg-white"
+                    >
+                      <option value="">Select category</option>
+                      <option value="Technical">Technical</option>
+                      <option value="Teaching">Teaching</option>
+                      <option value="Research">Research</option>
+                      <option value="Soft Skill">Soft Skill</option>
+                    </select>
+                  </div>
+
+                  {/* Proficiency Level */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Difficulty Level <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newSkill.proficiencyLevel}
+                      onChange={(e) =>
+                        setNewSkill({ ...newSkill, proficiencyLevel: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-900 transition-all bg-white"
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Target Score */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      Target Score (0-100) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={newSkill.targetScore}
+                      onChange={(e) =>
+                        setNewSkill({ ...newSkill, targetScore: parseInt(e.target.value) })
+                      }
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-900 transition-all"
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+
+                  {/* No. of MCQs */}
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      No. of MCQs <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={newSkill.noOfMcqs}
+                      onChange={(e) =>
+                        setNewSkill({ ...newSkill, noOfMcqs: parseInt(e.target.value) })
+                      }
+                      className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-900 transition-all"
+                      min="1"
+                    />
+                  </div>
                 </div>
 
                 {/* Description */}

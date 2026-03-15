@@ -37,40 +37,43 @@ const calculateGapsForAssessment = async (assessment) => {
   try {
     // Loop through assessed skills
     for (const rating of assessment.skillRatings) {
-      const { skillId, hodRating } = rating;
+      const { skillId, hodRating, comments } = rating;
 
-      // Fetch required rating
-      const mapping = await SkillMapping.findOne({ skillId });
+      // Fetch skill to get targetScore
+      const Skill = require("../schemas/SkillSchema");
+      const skill = await Skill.findById(skillId);
 
-      if (!mapping) {
-        console.warn(`No mapping found for skillId: ${skillId}`);
+      if (!skill) {
+        console.warn(`No skill found for skillId: ${skillId}`);
         continue;
       }
 
-      const currentRating = hodRating || 0; // Use HOD rating
-      const requiredRating = mapping.requiredRating;
+      // Skip skills that haven't been assessed yet (null score)
+      if (hodRating === null || hodRating === undefined) {
+        console.log(`Skipping gap calc for Skill: ${skill.name} (Not yet assessed)`);
+        continue;
+      }
 
-      const gapScore = Math.max(requiredRating - currentRating, 0);
+      const currentRating = hodRating; // Already 0-100
+      const targetScore = skill.targetScore || 80;
+
+      const gapScore = Math.max(targetScore - currentRating, 0);
 
       let gapSeverity = "low";
-      if (gapScore >= 3) gapSeverity = "high";
-      else if (gapScore >= 1) gapSeverity = "medium";
+      if (gapScore > 30) gapSeverity = "high";
+      else if (gapScore > 10) gapSeverity = "medium";
 
-      // -------------------------------------------------------------
-      // DECISION: Store ALL records or only where Gap > 0?
-      // -------------------------------------------------------------
-      // If the user wants to see "Standard Met" in the gap report too, we should store 0 gaps.
-      // But usually "Skill Gap" implies a deficiency.
-      // Current Logic: Only store if gapScore > 0
-      if (gapScore > 0) {
-        gaps.push({
-          skillId,
-          requiredRating,
-          currentRating,
-          gapScore,
-          gapSeverity,
-        });
-      }
+      // Store ALL records if needed, or just gaps
+      // Requirement says: 0–10 -> Strong Skill, 11–30 -> Moderate, Above 30 -> High
+      // I'll store all assessed skills so the dashboard can show "Strong Skill" statuses too.
+      gaps.push({
+        skillId,
+        requiredRating: targetScore,
+        currentRating,
+        gapScore,
+        gapSeverity,
+        comments: comments || "",
+      });
     }
 
     console.log(`--> Calculated ${gaps.length} gaps. Updating SkillGap collection...`);

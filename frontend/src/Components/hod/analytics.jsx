@@ -50,7 +50,7 @@ const Analytics = () => {
       const aggregatedGaps = Object.values(skillGapMap)
         .map((gap) => ({
           skill: gap.skillName,
-          gap: Math.round((gap.totalGap / gap.count) * 20), // Convert to percentage
+          gap: Math.round(gap.totalGap / gap.count),
           trend:
             gap.severity === "high"
               ? "up"
@@ -205,9 +205,9 @@ const Analytics = () => {
                 <div className="w-full bg-slate-100 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full ${
-                      item.gap > 60
+                      item.gap > 30
                         ? "bg-red-500"
-                        : item.gap > 40
+                        : item.gap > 10
                           ? "bg-amber-500"
                           : "bg-emerald-500"
                     }`}

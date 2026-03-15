@@ -20,7 +20,7 @@ import AdminDepartments from "../Components/admin/adminDepartments";
 import FacultyLayout from "../Components/faculty/facultyLayout";
 import FacultyDashboard from "../Components/faculty/facultyDashboard";
 
-import FacultyAssessment from "../Components/faculty/facultyAssessment";
+import FacultyAssessmentPage from "../Components/faculty/FacultyAssessmentPage";
 import FacultyGaps from "../Components/faculty/facultyGaps";
 import FacultyTraining from "../Components/faculty/facultyTraining";
 // import FacultySettings from "../Components/faculty/facultySettings";
@@ -30,8 +30,8 @@ import HodLayout from "../Components/hod/hodLayout";
 import HodDashboard from "../Components/hod/hodDashboard";
 import FacultyList from "../Components/hod/facultyList";
 import Skill from "../Components/hod/skill";
-import Mapping from "../Components/hod/mapping";
 import Assessments from "../Components/hod/assessments";
+import AssessmentHistory from "../Components/hod/assessmentHistory";
 import SkillGapDashboard from "../Components/hod/skillGap";
 import TrainingHod from "../Components/hod/training_hod";
 import Approval from "../Components/hod/approval";
@@ -71,7 +71,7 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="/faculty/dashboard" replace />} />
           <Route path="dashboard" element={<FacultyDashboard />} />
 
-          <Route path="assessment" element={<FacultyAssessment />} />
+          <Route path="assessment" element={<FacultyAssessmentPage />} />
           <Route path="gaps" element={<FacultyGaps />} />
           <Route path="training" element={<FacultyTraining />} />
           {/* <Route path="settings" element={<FacultySettings />} /> */}
@@ -89,9 +89,9 @@ const AppRoutes = () => {
           <Route index element={<Navigate to="/hod/dashboard" replace />} />
           <Route path="dashboard" element={<HodDashboard />} />
           <Route path="skills" element={<Skill />} />
-          <Route path="mapping" element={<Mapping />} />
           <Route path="assessments" element={<Assessments />} />
           <Route path="assessment/:facultyId" element={<Assessments />} />
+          <Route path="history" element={<AssessmentHistory />} />
           <Route path="analytics" element={<SkillGapDashboard />} />
           <Route path="training" element={<TrainingHod />} />
           <Route path="faculty" element={<FacultyList />} />

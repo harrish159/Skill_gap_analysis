@@ -1,6 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { ArrowLeft, Save, Loader2, Users, Search, ChevronRight, UserCircle, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Users,
+  Search,
+  ChevronRight,
+  UserCircle,
+  CheckCircle2,
+} from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 
 /* ── List View Component ── */
@@ -16,12 +25,16 @@ const AssessmentList = ({ onSelect }) => {
       try {
         setLoading(true);
         // 1. Fetch all faculty in department
-        const facultyRes = await axios.get("http://localhost:3000/api/allusers");
-        const list = facultyRes.data.filter(u => u.role === "FACULTY");
+        const facultyRes = await axios.get(
+          "http://localhost:3000/api/allusers",
+        );
+        const list = facultyRes.data.filter((u) => u.role === "FACULTY");
         setFaculties(list);
 
         // 2. Fetch all assessments to show status
-        const assessmentRes = await axios.get("http://localhost:3000/api/assessments");
+        const assessmentRes = await axios.get(
+          "http://localhost:3000/api/assessments",
+        );
         setAssessments(assessmentRes.data);
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -34,30 +47,42 @@ const AssessmentList = ({ onSelect }) => {
   }, []);
 
   const getStatus = (fId) => {
-    const found = assessments.find(a => a.facultyId?._id === fId);
+    const found = assessments.find((a) => a.facultyId?._id === fId);
     return found ? found.status : "pending";
   };
 
-  const filteredFaculties = faculties.filter(f =>
-    f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredFaculties = faculties.filter(
+    (f) =>
+      f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  if (loading) return (
-    <div style={s.loadingScreen}>
-      <div style={s.loadingSpinner} />
-      <p style={s.loadingText}>Fetching Faculty Records…</p>
-    </div>
-  );
+  if (loading)
+    return (
+      <div style={s.loadingScreen}>
+        <div style={s.loadingSpinner} />
+        <p style={s.loadingText}>Fetching Faculty Records…</p>
+      </div>
+    );
 
   return (
     <div style={s.page}>
       <style>{cssText}</style>
       <div style={s.container}>
-        <div style={{ ...s.header, justifyContent: 'flex-start', flexWrap: 'nowrap' }}>
+        <div
+          style={{
+            ...s.header,
+            justifyContent: "flex-start",
+            flexWrap: "nowrap",
+          }}
+        >
           <div style={s.headerMid}>
-            <h1 style={{ ...s.facultyName, textAlign: 'left' }}>Department Assessments</h1>
-            <p style={{ ...s.subLabel, textAlign: 'left' }}>Review and evaluate faculty skill levels</p>
+            <h1 style={{ ...s.facultyName, textAlign: "left" }}>
+              Department Assessments
+            </h1>
+            <p style={{ ...s.subLabel, textAlign: "left" }}>
+              Review and evaluate faculty skill levels
+            </p>
           </div>
         </div>
 
@@ -82,10 +107,14 @@ const AssessmentList = ({ onSelect }) => {
               <p>No faculty members found</p>
             </div>
           ) : (
-            filteredFaculties.map(f => {
+            filteredFaculties.map((f) => {
               const status = getStatus(f._id);
               return (
-                <div key={f._id} style={s.memberCard} onClick={() => onSelect(f._id)}>
+                <div
+                  key={f._id}
+                  style={s.memberCard}
+                  onClick={() => onSelect(f._id)}
+                >
                   <div style={s.memberLeft}>
                     <div style={s.memberAvatar}>{f.name.charAt(0)}</div>
                     <div>
@@ -95,7 +124,9 @@ const AssessmentList = ({ onSelect }) => {
                   </div>
                   <div style={s.memberRight}>
                     {status === "reviewed" ? (
-                      <span style={s.statusDone}><CheckCircle2 size={14} /> Reviewed</span>
+                      <span style={s.statusDone}>
+                        <CheckCircle2 size={14} /> Reviewed
+                      </span>
                     ) : (
                       <span style={s.statusPending}>Needs Review</span>
                     )}
@@ -118,7 +149,8 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
   const navigate = useNavigate();
 
   const [data, setData] = useState(null);
-  const [hodRatings, setHodRatings] = useState({});
+  const [hodRatings, setHodRatings] = useState({}); // Stores { skillId: { score, comments } }
+  const [retakeRequests, setRetakeRequests] = useState({}); // Stores { skillId: "pending" | "approved" }
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -128,14 +160,25 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
     const fetchSkills = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/assessments/faculty/${facultyId}`
+          `http://localhost:3000/api/assessments/faculty/${facultyId}`,
         );
         setData(res.data);
         const initial = {};
         res.data.skillRatings.forEach((sr) => {
-          initial[sr.skillId._id] = sr.hodRating;
+          initial[sr.skillId._id] = {
+            score: sr.hodRating,
+            comments: sr.comments || ""
+          };
         });
         setHodRatings(initial);
+
+        if (res.data.retakeRequests) {
+          const reqs = {};
+          res.data.retakeRequests.forEach((req) => {
+            reqs[req.skillId._id || req.skillId] = req.status;
+          });
+          setRetakeRequests(reqs);
+        }
       } catch (err) {
         console.error("Fetch Error:", err);
         alert("Error fetching skills");
@@ -153,7 +196,8 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
         facultyId,
         ratings: Object.keys(hodRatings).map((sId) => ({
           skillId: sId,
-          hodRating: hodRatings[sId],
+          hodRating: hodRatings[sId].score,
+          comments: hodRatings[sId].comments
         })),
       };
       await axios.post("http://localhost:3000/api/assessments/save", payload);
@@ -166,9 +210,29 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
     }
   };
 
-  const ratedCount = Object.values(hodRatings).filter((v) => v > 0).length;
+  const handleAllowRetake = async (skillId) => {
+    if (!window.confirm("Are you sure you want to clear this score to allow the faculty to retake the test?")) return;
+    setSaving(true);
+    try {
+      const token = sessionStorage.getItem("token");
+      await axios.post("http://localhost:3000/api/assessments/reset", {
+        facultyId,
+        skillId
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      alert("Retake request approved. Score cleared.");
+      window.location.reload();
+    } catch (err) {
+      alert("Failed to allow retake.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
+  const ratedCount = Object.values(hodRatings).filter((v) => v.score !== null && v.score !== undefined).length;
   const totalCount = data?.skillRatings?.length || 0;
-  const progressPct = totalCount > 0 ? Math.round((ratedCount / totalCount) * 100) : 0;
+  const progressPct =
+    totalCount > 0 ? Math.round((ratedCount / totalCount) * 100) : 0;
 
   if (loading) {
     return (
@@ -187,7 +251,6 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
       <style>{cssText}</style>
 
       <div style={s.container}>
-
         {/* ── Header ── */}
         <div style={s.header}>
           <button onClick={goBack} style={s.backBtn} className="back-btn">
@@ -207,7 +270,11 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
             style={{ ...s.saveBtn, ...(saving ? s.saveBtnDisabled : {}) }}
             className="save-btn"
           >
-            {saving ? <Loader2 size={14} className="spin" /> : <Save size={14} />}
+            {saving ? (
+              <Loader2 size={14} className="spin" />
+            ) : (
+              <Save size={14} />
+            )}
             <span>{saving ? "Saving…" : "Save Assessment"}</span>
           </button>
         </div>
@@ -216,7 +283,9 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
         <div style={s.progressCard}>
           <div style={s.progressLeft}>
             <span style={s.progressTitle}>Evaluation Progress</span>
-            <span style={s.progressSub}>{ratedCount} of {totalCount} skills rated</span>
+            <span style={s.progressSub}>
+              {ratedCount} of {totalCount} skills rated
+            </span>
           </div>
           <div style={s.progressTrack}>
             <div style={{ ...s.progressFill, width: `${progressPct}%` }} />
@@ -227,15 +296,32 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
         {/* ── Skill Cards ── */}
         <div style={s.grid}>
           {data.skillRatings.map((sr, idx) => {
-            const current = hodRatings[sr.skillId._id] || 0;
+            const scoreValue = hodRatings[sr.skillId._id]?.score;
+            const current = scoreValue !== null && scoreValue !== undefined ? scoreValue : 0;
             const required = sr.requiredRating;
-            const gap = current > 0 ? current - required : null;
+            const gap = required - current; // Gap = Target - Actual
 
-            let badge = { label: "Not Rated", color: "#94a3b8", bg: "#f8fafc", border: "#e2e8f0" };
-            if (gap !== null) {
-              if (gap < 0) badge = { label: `Gap ${gap}`, color: "#ef4444", bg: "#fff5f5", border: "#fecaca" };
-              else if (gap === 0) badge = { label: "Meets Standard", color: "#0d9488", bg: "#f0fdfa", border: "#99f6e4" };
-              else badge = { label: `Exceeds +${gap}`, color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" };
+            let badge = {
+              label: "Strong Skill",
+              color: "#0d9488",
+              bg: "#f0fdfa",
+              border: "#99f6e4",
+            };
+
+            if (gap > 30) {
+              badge = {
+                label: "High Gap",
+                color: "#ef4444",
+                bg: "#fff5f5",
+                border: "#fecaca",
+              };
+            } else if (gap > 10) {
+              badge = {
+                label: "Moderate Gap",
+                color: "#f59e0b",
+                bg: "#fffbeb",
+                border: "#fef3c7",
+              };
             }
 
             return (
@@ -245,6 +331,9 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
                   ...s.card,
                   borderColor: current > 0 ? badge.border : "#e2e8f0",
                   animationDelay: `${idx * 55}ms`,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "16px"
                 }}
                 className="skill-card"
               >
@@ -254,47 +343,80 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
                     <span style={s.categoryTag}>{sr.skillId.category}</span>
                     <h3 style={s.skillName}>{sr.skillId.name}</h3>
                   </div>
-                  <span style={{ ...s.gapBadge, color: badge.color, background: badge.bg, borderColor: badge.border }}>
+                  <span
+                    style={{
+                      ...s.gapBadge,
+                      color: badge.color,
+                      background: badge.bg,
+                      borderColor: badge.border,
+                    }}
+                  >
                     {badge.label}
                   </span>
                 </div>
 
-                {/* Required row */}
-                <div style={s.reqRow}>
-                  <span style={s.reqLabel}>Required level</span>
-                  <div style={s.pipRow}>
-                    {[1, 2, 3, 4, 5].map(n => (
-                      <div key={n} style={{ ...s.pip, background: n <= required ? "#0d9488" : "#e2e8f0" }} />
-                    ))}
-                    <span style={s.reqNum}>{required}</span>
+                {/* Required and Actual Row */}
+                <div style={s.scoreContainer}>
+                  <div style={s.scoreBox}>
+                    <span style={s.scoreLabel}>Target Score</span>
+                    <span style={s.scoreValue}>{required}%</span>
+                  </div>
+                  <div style={s.scoreDivider} />
+                  <div style={s.scoreBox}>
+                    <span style={s.scoreLabel}>MCQ Score</span>
+                    <span style={{ ...s.scoreValue, color: scoreValue === null || scoreValue === undefined ? "#94a3b8" : badge.color }}>
+                      {scoreValue === null || scoreValue === undefined ? "—" : `${scoreValue}%`}
+                    </span>
                   </div>
                 </div>
 
+                {/* Approve Retake Request Button */}
+                {retakeRequests[sr.skillId._id] === "pending" && (
+                  <div style={{ marginTop: "10px", display: "flex", justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                      <span style={{ fontSize: "12px", color: "#f59e0b", fontWeight: "600" }}>Faculty Requested Retake</span>
+                      <button 
+                        onClick={() => handleAllowRetake(sr.skillId._id)}
+                        disabled={saving}
+                        style={{
+                          background: "#0d9488",
+                          border: "none",
+                          color: "#fff",
+                          padding: "6px 14px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          transition: "background 0.2s"
+                        }}
+                        onMouseOver={(e) => { e.target.style.background = "#0f766e"; }}
+                        onMouseOut={(e) => { e.target.style.background = "#0d9488"; }}
+                      >
+                        Approve Retake
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div style={s.divider} />
 
-                {/* Rating buttons */}
-                <div style={s.ratingRow}>
-                  <span style={s.ratingLabel}>Your Rating</span>
-                  <div style={s.btnGroup}>
-                    {[1, 2, 3, 4, 5].map(num => {
-                      const selected = current === num;
-                      const filled = num < current;
-                      return (
-                        <button
-                          key={num}
-                          onClick={() => setHodRatings(prev => ({ ...prev, [sr.skillId._id]: num }))}
-                          style={{
-                            ...s.ratingBtn,
-                            ...(selected ? s.ratingSelected : {}),
-                            ...(filled && !selected ? s.ratingFilled : {}),
-                          }}
-                          className={selected ? "rating-selected" : "rating-btn-item"}
-                        >
-                          {num}
-                        </button>
-                      );
-                    })}
-                  </div>
+                {/* Comments Field */}
+                <div style={s.commentGroup}>
+                  <label style={s.commentLabel}>Reviewer Feedback</label>
+                  <textarea
+                    placeholder="Add notes, improvement suggestions, or feedback..."
+                    value={hodRatings[sr.skillId._id]?.comments || ""}
+                    onChange={(e) =>
+                      setHodRatings((prev) => ({
+                        ...prev,
+                        [sr.skillId._id]: {
+                          ...prev[sr.skillId._id],
+                          comments: e.target.value
+                        },
+                      }))
+                    }
+                    style={s.commentArea}
+                  />
                 </div>
               </div>
             );
@@ -303,18 +425,27 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
 
         {/* ── Footer ── */}
         <div style={s.footer}>
-          <span style={s.footerNote}>{totalCount - ratedCount} skills remaining</span>
+          <span style={s.footerNote}>
+            {totalCount - ratedCount} skills remaining
+          </span>
           <button
             onClick={handleSave}
             disabled={saving}
-            style={{ ...s.saveBtn, ...s.saveBtnLg, ...(saving ? s.saveBtnDisabled : {}) }}
+            style={{
+              ...s.saveBtn,
+              ...s.saveBtnLg,
+              ...(saving ? s.saveBtnDisabled : {}),
+            }}
             className="save-btn"
           >
-            {saving ? <Loader2 size={15} className="spin" /> : <Save size={15} />}
+            {saving ? (
+              <Loader2 size={15} className="spin" />
+            ) : (
+              <Save size={15} />
+            )}
             <span>{saving ? "Saving…" : "Save & Submit Assessment"}</span>
           </button>
         </div>
-
       </div>
     </div>
   );
@@ -326,10 +457,17 @@ const Assessments = () => {
   const navigate = useNavigate();
 
   if (facultyId) {
-    return <AssessmentDetail facultyId={facultyId} onBack={() => navigate("/hod/assessments")} />;
+    return (
+      <AssessmentDetail
+        facultyId={facultyId}
+        onBack={() => navigate("/hod/assessments")}
+      />
+    );
   }
 
-  return <AssessmentList onSelect={(id) => navigate(`/hod/assessment/${id}`)} />;
+  return (
+    <AssessmentList onSelect={(id) => navigate(`/hod/assessment/${id}`)} />
+  );
 };
 
 /* ── Styles ────────────────────────────────────── */
@@ -341,7 +479,7 @@ const s = {
     color: "#0f2a25",
   },
   container: {
-    maxWidth: "950px",
+    maxWidth: "1250px",
     margin: "0 auto",
     padding: "36px 24px 80px",
   },
@@ -456,105 +594,105 @@ const s = {
 
   /* Search */
   searchWrap: {
-    position: 'relative',
-    marginBottom: '20px',
+    position: "relative",
+    marginBottom: "20px",
   },
   searchIcon: {
-    position: 'absolute',
-    left: '12px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: '#94a3b8',
+    position: "absolute",
+    left: "12px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: "#94a3b8",
   },
   searchInput: {
-    width: '100%',
-    padding: '12px 12px 12px 40px',
-    borderRadius: '12px',
-    border: '1.5px solid #e2e8f0',
-    background: '#fff',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'all 0.2s',
+    width: "100%",
+    padding: "12px 12px 12px 40px",
+    borderRadius: "12px",
+    border: "1.5px solid #e2e8f0",
+    background: "#fff",
+    fontSize: "14px",
+    outline: "none",
+    transition: "all 0.2s",
   },
 
   /* list */
   listGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
   },
   memberCard: {
-    background: '#fff',
-    border: '1.5px solid #e2e8f0',
-    borderRadius: '16px',
-    padding: '16px 20px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
+    background: "#fff",
+    border: "1.5px solid #e2e8f0",
+    borderRadius: "16px",
+    padding: "16px 20px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    cursor: "pointer",
+    transition: "all 0.2s",
   },
   memberLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '14px',
+    display: "flex",
+    alignItems: "center",
+    gap: "14px",
   },
   memberAvatar: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '12px',
-    background: '#f0fdfa',
-    border: '1px solid #99f6e4',
-    color: '#0d9488',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: '700',
-    fontSize: '18px',
+    width: "40px",
+    height: "40px",
+    borderRadius: "12px",
+    background: "#f0fdfa",
+    border: "1px solid #99f6e4",
+    color: "#0d9488",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: "700",
+    fontSize: "18px",
   },
   memberName: {
-    fontSize: '16px',
-    fontWeight: '700',
-    color: '#0f2a25',
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#0f2a25",
     margin: 0,
   },
   memberEmail: {
-    fontSize: '12px',
-    color: '#94a3b8',
+    fontSize: "12px",
+    color: "#94a3b8",
     margin: 0,
   },
   memberRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
   },
   statusPending: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: '#64748b',
-    background: '#f1f5f9',
-    padding: '4px 10px',
-    borderRadius: '8px',
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "#64748b",
+    background: "#f1f5f9",
+    padding: "4px 10px",
+    borderRadius: "8px",
   },
   statusDone: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: '#0d9488',
-    background: '#f0fdfa',
-    padding: '4px 10px',
-    borderRadius: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
+    fontSize: "11px",
+    fontWeight: "600",
+    color: "#0d9488",
+    background: "#f0fdfa",
+    padding: "4px 10px",
+    borderRadius: "8px",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
   },
   emptyState: {
-    padding: '60px 20px',
-    textAlign: 'center',
-    color: '#94a3b8',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '12px',
+    padding: "60px 20px",
+    textAlign: "center",
+    color: "#94a3b8",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "12px",
   },
 
   /* progress */
@@ -756,6 +894,74 @@ const s = {
   footerNote: {
     fontSize: "13px",
     color: "#94a3b8",
+  },
+
+  /* Score Display */
+  scoreContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    background: "#f8fafc",
+    borderRadius: "12px",
+    padding: "16px",
+    border: "1.5px dashed #e2e8f0",
+  },
+  scoreBox: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "4px",
+    flex: 1,
+  },
+  scoreLabel: {
+    fontSize: "10px",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    fontWeight: "600",
+    color: "#64748b",
+  },
+  scoreValue: {
+    fontSize: "20px",
+    fontWeight: "800",
+    color: "#0f2a25",
+  },
+  scoreDivider: {
+    width: "1.5px",
+    height: "30px",
+    background: "#e2e8f0",
+  },
+
+  /* Comments */
+  commentGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  commentLabel: {
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#475569",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  commentArea: {
+    width: "100%",
+    minHeight: "80px",
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1.5px solid #e2e8f0",
+    background: "#fff",
+    fontSize: "13px",
+    fontFamily: "inherit",
+    color: "#334155",
+    outline: "none",
+    transition: "all 0.2s",
+    resize: "vertical",
+    ":focus": {
+      borderColor: "#0d9488",
+      boxShadow: "0 0 0 3px rgba(13,148,136,0.1)",
+    },
   },
 };
 

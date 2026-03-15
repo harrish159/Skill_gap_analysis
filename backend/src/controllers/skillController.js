@@ -2,15 +2,18 @@ const Skill = require("../schemas/SkillSchema");
 
 const addSkill = async (req, res) => {
   try {
-    const { name, category, description, createdBy } = req.body;
+    const { name, category, description, proficiencyLevel, createdBy, targetScore, noOfMcqs } = req.body;
     const departmentId = req.departmentId || req.body.departmentId;
 
     const newSkill = new Skill({
       name,
       category,
       description,
+      proficiencyLevel,
       createdBy,
       departmentId,
+      targetScore,
+      noOfMcqs,
     });
 
     await newSkill.save();

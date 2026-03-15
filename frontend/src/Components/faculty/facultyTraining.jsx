@@ -85,17 +85,17 @@ const FacultyTraining = () => {
 
   /* ── Helpers ── */
   const getSeverity = (gap) => {
-    if (gap >= 3) return { label: "High", bar: "bg-red-500", badge: "bg-red-100 text-red-700 border-red-200", leftColor: "#ef4444" };
-    if (gap === 2) return { label: "Medium", bar: "bg-amber-500", badge: "bg-amber-100 text-amber-700 border-amber-200", leftColor: "#f59e0b" };
+    if (gap > 30) return { label: "High", bar: "bg-red-500", badge: "bg-red-100 text-red-700 border-red-200", leftColor: "#ef4444" };
+    if (gap > 10) return { label: "Medium", bar: "bg-amber-500", badge: "bg-amber-100 text-amber-700 border-amber-200", leftColor: "#f59e0b" };
     return { label: "Low", bar: "bg-yellow-400", badge: "bg-yellow-100 text-yellow-700 border-yellow-200", leftColor: "#facc15" };
   };
 
-  const renderStars = (value, max = 5) => (
-    <div className="flex gap-0.5">
-      {Array.from({ length: max }).map((_, i) => (
-        <Star key={i} size={13}
-          className={i < value ? "fill-amber-400 text-amber-400" : "text-slate-300"} />
-      ))}
+  const renderMiniIndicator = (value) => (
+    <div className="flex items-center gap-1.5">
+      <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+        <div className="bg-teal-500 h-full" style={{ width: `${value}%` }} />
+      </div>
+      <span className="text-[10px] font-bold text-slate-700">{value}%</span>
     </div>
   );
 
@@ -121,7 +121,7 @@ const FacultyTraining = () => {
   /* Check if training matches gap criteria */
   const trainingMatchesGap = (training, currentGap) => {
     const minGap = training.minGapScore || 1;
-    const maxGap = training.maxGapScore || 5;
+    const maxGap = training.maxGapScore || 100;
     return currentGap >= minGap && currentGap <= maxGap;
   };
 
@@ -183,7 +183,7 @@ const FacultyTraining = () => {
   const pendingTotal = getCount("Pending");
   const acceptedTotal = getCount("Accepted");
   const rejectedTotal = getCount("Rejected");
-  const highPriority = sorted.filter((r) => r.gap >= 3).length;
+  const highPriority = sorted.filter((r) => r.gap > 30).length;
 
   /* ── LOADING ── */
   if (loading) {
@@ -290,8 +290,8 @@ const FacultyTraining = () => {
             <div className="flex items-start gap-2">
               <Info size={14} className="text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-xs text-blue-800">
-                <span className="font-semibold">Your gap: {item.gap} level{item.gap > 1 ? 's' : ''}</span>
-                <span className="ml-1">— Trainings shown match gap range {item.gap}</span>
+                <span className="font-semibold">Your gap: {item.gap}%</span>
+                <span className="ml-1">— Trainings shown match gap range {item.gap}%</span>
                 {!hasMatchingTrainings && item.trainings?.length > 0 && (
                   <span className="block mt-1 text-blue-700">
                     ⚠️ {item.trainings.length} training{item.trainings.length > 1 ? 's' : ''} available but don't match your gap level
@@ -305,24 +305,18 @@ const FacultyTraining = () => {
           <div className="flex items-center gap-5 mb-3">
             <div>
               <p className="text-xs text-slate-400 mb-1">Current</p>
-              <div className="flex items-center gap-1.5">
-                {renderStars(item.currentRating)}
-                <span className="text-xs font-bold text-slate-700">{item.currentRating}/5</span>
-              </div>
+              {renderMiniIndicator(item.currentRating)}
             </div>
             <div className="w-px h-7 bg-slate-200" />
             <div>
               <p className="text-xs text-slate-400 mb-1">Required</p>
-              <div className="flex items-center gap-1.5">
-                {renderStars(item.requiredLevel)}
-                <span className="text-xs font-bold text-slate-700">{item.requiredLevel}/5</span>
-              </div>
+              {renderMiniIndicator(item.requiredLevel)}
             </div>
             <div className="w-px h-7 bg-slate-200" />
             <div>
               <p className="text-xs text-slate-400 mb-1">Gap</p>
-              <span className={`text-sm font-bold ${item.gap >= 3 ? "text-red-600" : item.gap === 2 ? "text-amber-600" : "text-yellow-600"}`}>
-                -{item.gap} level{item.gap > 1 ? "s" : ""}
+              <span className={`text-sm font-bold ${item.gap > 30 ? "text-red-600" : item.gap > 10 ? "text-amber-600" : "text-yellow-600"}`}>
+                -{item.gap}%
               </span>
             </div>
           </div>
@@ -340,8 +334,8 @@ const FacultyTraining = () => {
               />
             </div>
             <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>Current: {item.currentRating}</span>
-              <span>Target: {item.requiredLevel}</span>
+              <span>Score: {item.currentRating}%</span>
+              <span>Target: {item.requiredLevel}%</span>
             </div>
           </div>
 
@@ -362,7 +356,7 @@ const FacultyTraining = () => {
                     const uniqueId = t._id ? `${item.skillId}-${t._id}` : null;
                     const isReqLocal = uniqueId ? requesting[uniqueId] : false;
                     const minGap = t.minGapScore || 1;
-                    const maxGap = t.maxGapScore || 5;
+                    const maxGap = t.maxGapScore || 100;
 
                     return (
                       <div key={i} className="bg-slate-50 border border-slate-200 rounded-lg hover:border-teal-300 transition-colors overflow-hidden">
@@ -378,7 +372,7 @@ const FacultyTraining = () => {
                               <div className="flex items-center gap-2 mt-1.5">
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-100 text-teal-700 border border-teal-200 rounded-md text-[10px] font-bold">
                                   <Target size={9} />
-                                  Gap Range: {minGap}–{maxGap}
+                                  Gap Range: {minGap}%–{maxGap}%
                                 </span>
                                 {t.improvesBy && (
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-md text-[10px] font-bold">
@@ -431,8 +425,8 @@ const FacultyTraining = () => {
                           <div className="flex items-start gap-1.5 p-2 bg-white border border-teal-100 rounded-md">
                             <CheckCircle size={11} className="text-emerald-500 flex-shrink-0 mt-0.5" />
                             <p className="text-[10px] text-slate-600">
-                              <span className="font-semibold text-emerald-700">Perfect match!</span> This training targets gaps of {minGap}–{maxGap}, and your gap is <span className="font-bold">{item.gap}</span>.
-                              {t.improvesBy && ` Completing this can improve your level by +${t.improvesBy}.`}
+                              <span className="font-semibold text-emerald-700">Perfect match!</span> This training targets gaps of {minGap}%–{maxGap}%, and your gap is <span className="font-bold">{item.gap}%</span>.
+                              {t.improvesBy && ` Completing this can improve your proficiency by +${t.improvesBy}%.`}
                             </p>
                           </div>
                         </div>

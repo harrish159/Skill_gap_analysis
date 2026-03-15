@@ -121,12 +121,15 @@ exports.getTrainingBySkillAndGap = async (req, res) => {
     const { skillId, gapScore } = req.params;
     const gapScoreNum = Number(gapScore);
 
+    // Normalize gapScore (0-100) to 1-5 scale for Training data compatibility
+    const normalizedGap = Math.max((gapScoreNum / 100) * 5, 0.5);
+
     const filter = {
       isActive: true,
       "skillsCovered.skillId": skillId,
-      "skillsCovered.minGapScore": { $lte: gapScoreNum },
+      "skillsCovered.minGapScore": { $lte: normalizedGap },
       $or: [
-        { "skillsCovered.maxGapScore": { $gte: gapScoreNum } },
+        { "skillsCovered.maxGapScore": { $gte: normalizedGap } },
         { "skillsCovered.maxGapScore": { $exists: false } },
         { "skillsCovered.maxGapScore": null }
       ],

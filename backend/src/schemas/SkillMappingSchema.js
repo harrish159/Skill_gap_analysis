@@ -23,7 +23,7 @@ const skillMappingSchema = new mongoose.Schema(
     requiredRating: {
       type: Number,
       min: 0,
-      max: 5,
+      max: 100,
       required: true,
     },
   },

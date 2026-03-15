@@ -19,6 +19,13 @@ const skillSchema = new mongoose.Schema(
       type: String,
     },
 
+    proficiencyLevel: {
+      type: String,
+      enum: ["Beginner", "Intermediate", "Advanced"],
+      default: "Beginner",
+      required: true,
+    },
+
     isActive: {
       type: Boolean,
       default: true,
@@ -33,6 +40,21 @@ const skillSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
       required: true,
+    },
+
+    targetScore: {
+      type: Number,
+      required: true,
+      default: 80,
+      min: 0,
+      max: 100,
+    },
+
+    noOfMcqs: {
+      type: Number,
+      required: true,
+      default: 10,
+      min: 1,
     },
   },
   {

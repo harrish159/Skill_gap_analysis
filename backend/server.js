@@ -26,6 +26,7 @@ app.use("/api/departments", require("./src/routes/departmentRoutes"));
 app.use("/api", require("./src/routes/skillgapRoutes"));
 app.use("/api", require("./src/routes/recommendationRoutes"));
 app.use("/api", require("./src/routes/trainingRoutes"));
+app.use("/api/ai", require("./src/routes/aiRoutes"));
 app.use("/api", require("./src/routes/approvalRoutes"));
 
 app.get("/", (req, res) => {

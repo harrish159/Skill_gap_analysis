@@ -11,6 +11,7 @@ import {
   FileText,
   User,
   LogOut,
+  History,
 } from "lucide-react";
 
 const HodSidebar = () => {
@@ -41,7 +42,6 @@ const HodSidebar = () => {
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         <NavItem to="/hod/dashboard" icon={LayoutDashboard} label="Dashboard" />
         <NavItem to="/hod/skills" icon={Wrench} label="Manage Skills" />
-        <NavItem to="/hod/mapping" icon={Link} label="Skill Mapping" />
         <NavItem
           to="/hod/assessments"
           icon={ClipboardList}
@@ -51,6 +51,11 @@ const HodSidebar = () => {
           to="/hod/analytics"
           icon={BarChart3}
           label="Skill Gap Analytics"
+        />
+        <NavItem
+          to="/hod/history"
+          icon={History}
+          label="Assessment History"
         />
         <NavItem
           to="/hod/training"
