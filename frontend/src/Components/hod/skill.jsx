@@ -98,7 +98,7 @@ const Skill = () => {
       setError("");
     } catch (error) {
       console.error("Error saving skill:", error);
-      setError("Failed to save skill");
+      setError(error.response?.data?.message || "Failed to save skill");
     }
   };
 

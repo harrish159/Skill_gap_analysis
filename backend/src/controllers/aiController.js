@@ -139,10 +139,132 @@ Format Example:
         return res.status(200).json(sanitized);
       }
     } catch (finalErr) {
-      console.error("[AI-GEN] All generation attempts failed completely.");
+      console.error("[AI-GEN] Ultimate fallback API attempt failed:", finalErr.message);
     }
 
-    throw lastError || new Error("Failed to generate questions via AI");
+    // If all attempts (and ultimate fallback attempt) failed:
+    console.error("[AI-GEN] All generation attempts failed completely. Using default generic questions.");
+    
+    // Fallback static 10 questions tailored to the specific skill
+    const fallbackQuestions = [
+      {
+        question: `What is the primary purpose and core concept of ${skill.name}?`,
+        options: [
+          `To manage the fundamental lifecycle and processes of ${skill.name}`,
+          `To bypass security and logic rules entirely`,
+          `To provide a legacy approach no longer used in modern systems`,
+          `To act as a deprecated placeholder`
+        ],
+        correct_answer: `To manage the fundamental lifecycle and processes of ${skill.name}`,
+        explanation: `Understanding the primary purpose of ${skill.name} is the first step to mastering it.`
+      },
+      {
+        question: `Which of the following is considered a best practice when working with ${skill.name}?`,
+        options: [
+          `Handling errors and edge cases gracefully`,
+          `Ignoring official documentation and guidelines`,
+          `Using anti-patterns to speed up delivery`,
+          `Hardcoding sensitive information and credentials`
+        ],
+        correct_answer: `Handling errors and edge cases gracefully`,
+        explanation: `Best practices in ${skill.name} always emphasize robust error handling and adherence to standards.`
+      },
+      {
+        question: `What is a common challenge or limitation associated with ${skill.name}?`,
+        options: [
+          `Complexity in scaling or managing edge cases properly`,
+          `It is impossible to integrate with any other systems`,
+          `It requires physical specialized hardware for any basic operation`,
+          `It only supports a single user at any given time globally`
+        ],
+        correct_answer: `Complexity in scaling or managing edge cases properly`,
+        explanation: `Like most skills and domains, ${skill.name} requires careful planning to scale and handle complex cases.`
+      },
+      {
+        question: `In a professional setting, how is proficiency in ${skill.name} typically demonstrated?`,
+        options: [
+          `By applying concepts to solve real-world problems effectively`,
+          `By memorizing definitions without understanding context`,
+          `By avoiding its use whenever possible`,
+          `By delegating all related tasks to other team members`
+        ],
+        correct_answer: `By applying concepts to solve real-world problems effectively`,
+        explanation: `Demonstrating proficiency in ${skill.name} means knowing how and when to apply it practically.`
+      },
+      {
+        question: `Which methodology or approach is most aligned with modern ${skill.name}?`,
+        options: [
+          `Iterative, efficient, and standardized workflows`,
+          `Randomized trial and error with no documentation`,
+          `Strictly manual processing without any optimization`,
+          `Using unverified and outdated resources`
+        ],
+        correct_answer: `Iterative, efficient, and standardized workflows`,
+        explanation: `Modern usage of ${skill.name} aligns with optimized and standardized professional methodologies.`
+      },
+      {
+        question: `If a critical error occurs related to ${skill.name}, what is the recommended first step?`,
+        options: [
+          `Analyze the root cause and review relevant symptoms or logs`,
+          `Delete everything and start over repeatedly`,
+          `Ignore the error and hope it resolves itself automatically`,
+          `Blame hardware limitations unconditionally`
+        ],
+        correct_answer: `Analyze the root cause and review relevant symptoms or logs`,
+        explanation: `Troubleshooting ${skill.name} requires careful analysis of logs, symptoms, and root causes.`
+      },
+      {
+        question: `What role does ongoing learning play in maintaining ${skill.name}?`,
+        options: [
+          `It is crucial because standards and practices evolve over time`,
+          `It is irrelevant because nothing ever changes`,
+          `It is only necessary for complete beginners`,
+          `It is discouraged to prevent overthinking`
+        ],
+        correct_answer: `It is crucial because standards and practices evolve over time`,
+        explanation: `Continuous learning is essential for ${skill.name} to keep up with industry advancements.`
+      },
+      {
+        question: `How does ${skill.name} integrate with broader organizational goals?`,
+        options: [
+          `It enhances capabilities, efficiency, or quality of outputs`,
+          `It generally introduces unnecessary roadblocks and delays`,
+          `It is completely isolated from all other goals`,
+          `It reduces the overall competency of the team`
+        ],
+        correct_answer: `It enhances capabilities, efficiency, or quality of outputs`,
+        explanation: `Effective use of ${skill.name} directly contributes to achieving broader goals and improvements.`
+      },
+      {
+        question: `When evaluating someone's expertise in ${skill.name}, which metric is most valuable?`,
+        options: [
+          `Quality of application and problem-solving success rate`,
+          `The number of hours spent reading about it`,
+          `The volume of complaints raised about the subject`,
+          `The ability to explain it using untranslated foreign languages`
+        ],
+        correct_answer: `Quality of application and problem-solving success rate`,
+        explanation: `Practical success and high-quality application are the best metrics for ${skill.name} expertise.`
+      },
+      {
+        question: `What is the most effective way to optimize processes involving ${skill.name}?`,
+        options: [
+          `Implementing structured reviews, automation, or regular audits`,
+          `Adding more redundant steps without evaluating them`,
+          `Removing all quality control measures to save time`,
+          `Refusing to adapt or change any existing workflows`
+        ],
+        correct_answer: `Implementing structured reviews, automation, or regular audits`,
+        explanation: `Optimization in ${skill.name} involves standardizing, auditing, and automating where appropriate.`
+      }
+    ].slice(0, skill.noOfMcqs || 10);
+
+    const sanitizedFallback = fallbackQuestions.map((q, i) => ({
+      ...q,
+      id: `ai-fallback-${Date.now()}-${i}`
+    }));
+
+    return res.status(200).json(sanitizedFallback);
 
   } catch (error) {
     console.error("Controller Error:", error);

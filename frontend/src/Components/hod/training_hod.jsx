@@ -37,7 +37,7 @@ const TrainingHod = () => {
     startDate: "",
     deadline: "",
     skillsCovered: [
-      { skillId: "", minGapScore: "1", maxGapScore: "", improvesBy: "1" },
+      { skillId: "", minGapScore: "10", maxGapScore: "100", improvesBy: "20" },
     ],
   });
 
@@ -160,7 +160,7 @@ const TrainingHod = () => {
       ...prev,
       skillsCovered: [
         ...prev.skillsCovered,
-        { skillId: "", minGapScore: "1", maxGapScore: "", improvesBy: "1" },
+        { skillId: "", minGapScore: "10", maxGapScore: "100", improvesBy: "20" },
       ],
     }));
   };
@@ -440,11 +440,10 @@ const TrainingHod = () => {
                                 </div>
                                 <div className="flex items-center gap-3 text-xs text-slate-600">
                                   <span>
-                                    Gap: {sc.minGapScore}–
-                                    {sc.maxGapScore || "100"}
+                                    Gap targets: {sc.minGapScore}%–{sc.maxGapScore || "100"}%
                                   </span>
                                   <span className="text-emerald-600 font-semibold">
-                                    +{sc.improvesBy} improve
+                                    +{sc.improvesBy}% improvement
                                   </span>
                                 </div>
                               </div>
@@ -647,7 +646,7 @@ const TrainingHod = () => {
                   <label className="text-sm font-semibold text-slate-700">
                     Skills Covered <span className="text-red-500">*</span>
                     <span className="ml-2 inline-block px-2 py-0.5 bg-amber-50 text-amber-600 text-[10px] rounded border border-amber-100 font-normal">
-                      Set 'Min Gap' to 1 to reach everyone
+                      Target 1% to 100% gap to reach all faculty
                     </span>
                   </label>
                   <button
@@ -686,7 +685,7 @@ const TrainingHod = () => {
                         min="1"
                         max="100"
                         className="px-2 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                        placeholder="Min Gap % (e.g. 1)"
+                        placeholder="Min Gap % (e.g. 10)"
                         value={sc.minGapScore}
                         onChange={(e) =>
                           updateSkillRow(index, "minGapScore", e.target.value)
@@ -697,7 +696,7 @@ const TrainingHod = () => {
                         min="1"
                         max="100"
                         className="px-2 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                        placeholder="Max Gap % (Optional)"
+                        placeholder="Max Gap % (e.g. 100)"
                         value={sc.maxGapScore}
                         onChange={(e) =>
                           updateSkillRow(index, "maxGapScore", e.target.value)
@@ -709,7 +708,7 @@ const TrainingHod = () => {
                           min="1"
                           max="100"
                           className="w-full px-2 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-900"
-                          placeholder="+ Improv %"
+                          placeholder="+ Improv % (e.g. 20)"
                           value={sc.improvesBy}
                           onChange={(e) =>
                             updateSkillRow(index, "improvesBy", e.target.value)

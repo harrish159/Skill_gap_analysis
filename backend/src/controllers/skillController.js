@@ -19,7 +19,12 @@ const addSkill = async (req, res) => {
     await newSkill.save();
     res.status(201).json({ message: "Skill added successfully", skill: newSkill });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "A skill with this name already exists" });
+    }
+    console.error("ADD SKILL ERROR:", error);
+    require("fs").appendFileSync("error_log.txt", JSON.stringify({ body: req.body, error: error.message, stack: error.stack }) + "\\n");
+    res.status(500).json({ message: error.message, stack: error.stack });
   }
 };
 

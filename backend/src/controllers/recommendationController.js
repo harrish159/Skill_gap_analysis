@@ -58,9 +58,6 @@ exports.getTrainingRecommendations = async (req, res) => {
       const skillIdStr = gap.skillId._id.toString();
       const latestSkillRequest = skillStatusMap[skillIdStr] || {};
 
-      // Normalize gapScore (0-100) to 1-5 scale for backward compatibility with Training data
-      const normalizedGap = Math.max((gap.gapScore / 100) * 5, 0.5); // Minimum 0.5 to catch low level trainings
-
       // Find trainings that cover this skill, match the gap score range, and belong to the same department
       const matchingTrainings = await Training.find({
         isActive: true,
@@ -68,9 +65,9 @@ exports.getTrainingRecommendations = async (req, res) => {
         skillsCovered: {
           $elemMatch: {
             skillId: gap.skillId._id,
-            minGapScore: { $lte: normalizedGap },
+            minGapScore: { $lte: gap.gapScore },
             $or: [
-              { maxGapScore: { $gte: normalizedGap } },
+              { maxGapScore: { $gte: gap.gapScore } },
               { maxGapScore: { $exists: false } },
               { maxGapScore: null }
             ]
