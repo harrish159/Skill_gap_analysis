@@ -34,7 +34,6 @@ import Assessments from "../Components/hod/assessments";
 import AssessmentHistory from "../Components/hod/assessmentHistory";
 import SkillGapDashboard from "../Components/hod/skillGap";
 import TrainingHod from "../Components/hod/training_hod";
-import Approval from "../Components/hod/approval";
 
 const AppRoutes = () => {
   return (
@@ -95,8 +94,6 @@ const AppRoutes = () => {
           <Route path="analytics" element={<SkillGapDashboard />} />
           <Route path="training" element={<TrainingHod />} />
           <Route path="faculty" element={<FacultyList />} />
-          <Route path="approval" element={<Approval />} />
-          {/* <Route path="reports" element={<Approval />} /> */}
         </Route>
 
         {/* 404 Route */}

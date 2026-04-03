@@ -39,7 +39,7 @@ Description: ${skill.description || "No specific description provided."}`;
     } else if (level === "intermediate") {
       levelInstructions = "- The questions should assess working knowledge, application of concepts, and moderate problem-solving.";
     } else {
-      levelInstructions = "- The questions should assess foundational knowledge, terminology, and basic concepts.";
+      levelInstructions = "- The questions should assess foundational knowledge, terminology, and basic concepts of the skill It is rele";
     }
 
     // specialized instructions for different skill types
@@ -59,65 +59,110 @@ Description: ${skill.description || "No specific description provided."}`;
 - Avoid overly simplistic definitions.`;
     }
 
-    // Attempt generation with a few model options based on available list
-    const modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemma-3-12b-it"];
+    // Determine chunks to avoid LLM token limits (max 10 questions per chunk)
+    const targetCount = skill.noOfMcqs || 10;
+    const chunkSize = 10;
+    const chunkCounts = [];
+    let remaining = targetCount;
+    while(remaining > 0) {
+        chunkCounts.push(Math.min(remaining, chunkSize));
+        remaining -= chunkSize;
+    }
+
+    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemma-3-12b-it"];
     let lastError = null;
+    let allGeneratedMcqs = [];
 
     for (const modelName of modelsToTry) {
       try {
-        console.log(`[AI-GEN] Attempting generation for skill: ${skill.name} using ${modelName}`);
+        console.log(`[AI-GEN] Attempting generation for skill: ${skill.name} using ${modelName} in ${chunkCounts.length} chunks`);
         const model = genAI.getGenerativeModel({ model: modelName });
+        allGeneratedMcqs = [];
 
-        const prompt = `Generate ${skill.noOfMcqs || 10} multiple choice questions to assess proficiency in:
+        // Run chunks in parallel to save time
+        const promises = chunkCounts.map((count) => {
+          const prompt = `You are an expert assessment content generator and UI formatter.
+Generate exactly ${count} multiple choice questions to assess proficiency in:
 ${skillContext}
 
-Requirements:
-- Level: Appropriate for faculty/senior assessment aiming for the specified proficiency level.
-- ${levelInstructions}
-- ${specializedInstructions}
-- Each question must have exactly 4 options and one clear correct answer.
-- Return ONLY a valid JSON array of objects.
-- Ensure diversity in question topics.
+STRICT FORMAT RULES:
+1. Separate sections clearly: Title, Problem Description, Code Block, Question, Options, Correct Answer, and Explanation.
+2. Code Formatting: Place ALL code (Java, HTML, SQL, etc depending on skill) inside the "code" field. Use indentation and line breaks properly. Do NOT mix code with plain text. Use standard syntax formatting.
+3. Question Design: Keep the problem statement short and readable. Avoid long inline code in paragraphs. Move all logic into the code block.
+4. Options: Exactly 4 options. Each option must be concise and aligned.
+5. You MUST return ONLY a valid JSON array of exactly ${count} objects.
 
 Format Example:
 [
   {
-    "question": "...",
-    "options": ["A", "B", "C", "D"],
-    "correct_answer": "...",
-    "explanation": "..."
+    "title": "Short descriptive title",
+    "problem": "Clear explanation of the context or scenario.",
+    "code": "properly formatted multiline code without markdown backticks, or empty string if none",
+    "question": "The specific question being asked?",
+    "options": ["Option A text", "Option B text", "Option C text", "Option D text"],
+    "correct_answer": "Option A text",
+    "explanation": "Clear and concise explanation."
   }
-]`;
+]
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        let text = response.text();
+Special instructions:
+- Level: Appropriate for faculty/senior assessment aiming for the specified proficiency level.
+- ${levelInstructions}
+- ${specializedInstructions}
+- Ensure diversity in question topics.`;
 
-        // Basic JSON extraction and cleanup
-        const jsonMatch = text.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          // Replace literal newlines/control characters within strings that break JSON parsing
-          text = jsonMatch[0].replace(/[\u0000-\u0019]+/g, ""); 
+          return model.generateContent(prompt).then(async (result) => {
+            const response = await result.response;
+            let text = response.text();
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (jsonMatch) text = jsonMatch[0].replace(/[\u0000-\u0019]+/g, ""); 
+            return JSON.parse(text);
+          });
+        });
+
+        // Wait for all chunks
+        const chunksResult = await Promise.all(promises);
+        
+        // Flatten and aggregate
+        chunksResult.forEach(chunk => {
+            if (Array.isArray(chunk)) {
+                allGeneratedMcqs.push(...chunk);
+            }
+        });
+
+        // If we got all chunks successfully (or at least close) we break 
+        if (allGeneratedMcqs.length >= targetCount * 0.8) {
+            break;
+        } else {
+            throw new Error(`Only got ${allGeneratedMcqs.length} questions out of ${targetCount}`);
         }
 
-        const mcqs = JSON.parse(text);
-
-        // Add unique IDs and ensure structure
-        const sanitizedMcqs = mcqs.map((q, idx) => ({
-          question: q.question || "Untitled Question",
-          options: Array.isArray(q.options) ? q.options : ["Option A", "Option B", "Option C", "Option D"],
-          correct_answer: q.correct_answer || (q.options ? q.options[0] : "Option A"),
-          explanation: q.explanation || "No explanation provided.",
-          id: `ai-${Date.now()}-${idx}-${Math.floor(Math.random() * 1000)}`
-        }));
-
-        console.log(`[AI-GEN] Successfully generated ${sanitizedMcqs.length} questions for ${skill.name}`);
-        return res.status(200).json(sanitizedMcqs);
-
       } catch (err) {
-        console.warn(`[AI-GEN] Model ${modelName} failed: ${err.message}`);
+        console.warn(`[AI-GEN] Model ${modelName} failed chunking: ${err.message}`);
         lastError = err;
+        allGeneratedMcqs = []; // reset for next model
       }
+    }
+
+    // Process our results if we succeeded
+    if (allGeneratedMcqs.length > 0) {
+      // Limit to exact requested amount just in case the LLM returned extra
+      allGeneratedMcqs = allGeneratedMcqs.slice(0, targetCount);
+
+      // Add unique IDs and ensure structure
+      const sanitizedMcqs = allGeneratedMcqs.map((q, idx) => ({
+        title: q.title || "",
+        problem: q.problem || "",
+        code: q.code || "",
+        question: q.question || "Untitled Question",
+        options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+        correct_answer: q.correct_answer || (q.options ? q.options[0] : "Option A"),
+        explanation: q.explanation || "No explanation provided.",
+        id: `ai-${Date.now()}-${idx}-${Math.floor(Math.random() * 1000)}`
+      }));
+
+      console.log(`[AI-GEN] Successfully generated exactly ${sanitizedMcqs.length} questions for ${skill.name}`);
+      return res.status(200).json(sanitizedMcqs);
     }
 
     // Ultimate Fallback: Try one very simple prompt if all else fails
@@ -144,7 +189,7 @@ Format Example:
 
     // If all attempts (and ultimate fallback attempt) failed:
     console.error("[AI-GEN] All generation attempts failed completely. Using default generic questions.");
-    
+
     // Fallback static 10 questions tailored to the specific skill
     const fallbackQuestions = [
       {

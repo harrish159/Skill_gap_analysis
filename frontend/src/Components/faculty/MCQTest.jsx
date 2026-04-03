@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
-  ChevronRight, ChevronLeft, Send, Timer, X, Sparkles, AlertCircle,
-  CheckCircle2, Clock, User, BookOpen, Flag, Trash2, Eye, EyeOff,
-  ChevronUp, ChevronDown, AlertTriangle, Award,
+  Send, Timer, Sparkles, AlertCircle,
+  Clock, BookOpen, Flag, Trash2, Eye, EyeOff,
+  AlertTriangle, Award, ChevronLeft, ChevronRight,
+  CheckCircle2, Settings, HelpCircle, LogOut, Diamond
 } from "lucide-react";
 
 const MCQTest = ({ skill, onComplete, onCancel }) => {
@@ -23,24 +24,60 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
 
   const facultyName = JSON.parse(sessionStorage.getItem("user"))?.name || "Faculty";
 
+  const initialized = useRef(false);
   useEffect(() => {
-    generateQuestions();
+    if (!initialized.current) {
+      initialized.current = true;
+      generateQuestions();
+    }
   }, []);
 
+  // Start timer ONCE when loading completes — not on every tick
+  const timerStarted = useRef(false);
   useEffect(() => {
-    if (timeLeft > 0 && !loading) {
-      const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-      return () => clearInterval(timer);
-    } else if (timeLeft === 0 && !loading && questions.length > 0) {
+    if (!loading && questions.length > 0 && !timerStarted.current) {
+      timerStarted.current = true;
+      setTimeLeft(questions.length * 120);
+    }
+  }, [loading, questions]);
+
+  // Countdown tick
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  // Auto-submit when time runs out (but only after test has started)
+  useEffect(() => {
+    if (timeLeft === 0 && timerStarted.current && questions.length > 0) {
       handleSubmit();
     }
-  }, [timeLeft, loading]);
+  }, [timeLeft]);
 
   useEffect(() => {
     setAutoSaveStatus("saving");
     const timeout = setTimeout(() => setAutoSaveStatus("saved"), 500);
     return () => clearTimeout(timeout);
   }, [answers]);
+
+  useEffect(() => {
+    const enterFullScreen = () => {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => { });
+      }
+    };
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && ['c', 'v', 'x', 'a', 'p'].includes(e.key)) e.preventDefault();
+    };
+    document.addEventListener("click", enterFullScreen);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", enterFullScreen);
+      document.removeEventListener("keydown", handleKeyDown);
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => { });
+    };
+  }, []);
 
   const generateQuestions = async () => {
     try {
@@ -52,7 +89,7 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setQuestions(res.data);
-      setTimeLeft(res.data.length * 120);
+      // timer is started by a separate effect watching [loading, questions]
     } catch (err) {
       setError("AI generation failed. Please check your connection or try again.");
     } finally {
@@ -74,16 +111,11 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
   };
 
   const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-    }
+    if (currentQuestion > 0) setCurrentQuestion(currentQuestion - 1);
   };
 
   const handleMarkForReview = () => {
-    setMarkedForReview({
-      ...markedForReview,
-      [currentQuestion]: !markedForReview[currentQuestion],
-    });
+    setMarkedForReview({ ...markedForReview, [currentQuestion]: !markedForReview[currentQuestion] });
   };
 
   const handleClearResponse = () => {
@@ -95,28 +127,18 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
   const handleSubmit = async () => {
     setShowSubmitModal(false);
     if (submitting) return;
-
     let correctCount = 0;
-    questions.forEach((q, index) => {
-      if (answers[index] === q.correct_answer) correctCount++;
-    });
-
+    questions.forEach((q, index) => { if (answers[index] === q.correct_answer) correctCount++; });
     const score = Math.round((correctCount / questions.length) * 100);
-
     try {
       setSubmitting(true);
       const facultyId = sessionStorage.getItem("userId");
       const token = sessionStorage.getItem("token");
-
       await axios.post(
         "http://localhost:3000/api/assessments/save",
-        {
-          facultyId,
-          ratings: [{ skillId: skill._id, hodRating: score }],
-        },
+        { facultyId, ratings: [{ skillId: skill._id, hodRating: score }] },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       setTestResult({ score, correct: correctCount, total: questions.length });
     } catch (err) {
       alert("Failed to save your score. Please contact support.");
@@ -126,9 +148,10 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
   };
 
   const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   const getQuestionStatus = (index) => {
@@ -141,41 +164,28 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
   const stats = {
     answered: Object.keys(answers).length,
     notAnswered: questions.length - Object.keys(answers).length,
-    marked: Object.keys(markedForReview).filter((k) => markedForReview[k]).length,
+    marked: Object.keys(markedForReview).filter(k => markedForReview[k]).length,
     notVisited: questions.length - Object.keys(visited).length,
   };
 
   /* ── RESULT SCREEN ── */
   if (testResult) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-lg w-full border border-slate-200">
-          <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-            <Award size={48} className="text-white" />
+      <div style={styles.overlay}>
+        <div style={styles.resultCard}>
+          <div style={styles.resultIconWrap}>
+            <Award size={44} color="#fff" />
           </div>
-          <h2 className="text-4xl font-bold text-slate-900 mb-3 text-center">Assessment Complete!</h2>
-          <p className="text-slate-600 mb-8 text-center">
-            You've successfully submitted your assessment for <span className="font-semibold">{skill.name}</span>
+          <h2 style={styles.resultTitle}>Assessment Complete!</h2>
+          <p style={styles.resultSub}>
+            Successfully submitted for <strong>{skill.name}</strong>
           </p>
-
-          <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl p-8 mb-8 border border-slate-200">
-            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">
-              Your Score
-            </p>
-            <p className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 text-center">
-              {testResult.score}%
-            </p>
-            <p className="text-sm text-slate-500 mt-3 text-center">
-              {testResult.correct} out of {testResult.total} questions correct
-            </p>
+          <div style={styles.scoreBox}>
+            <p style={styles.scoreLabel}>YOUR SCORE</p>
+            <p style={styles.scoreValue}>{testResult.score}%</p>
+            <p style={styles.scoreDetail}>{testResult.correct} / {testResult.total} correct</p>
           </div>
-
-          <button
-            onClick={onComplete}
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-4 font-bold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg"
-          >
-            Continue to Dashboard
-          </button>
+          <button onClick={onComplete} style={styles.primaryBtn}>Continue to Dashboard</button>
         </div>
       </div>
     );
@@ -184,30 +194,14 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
   /* ── ERROR SCREEN ── */
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="bg-white rounded-3xl shadow-2xl p-12 max-w-md w-full border border-red-200">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <AlertCircle size={40} className="text-red-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-3 text-center">Generation Failed</h2>
-          <p className="text-slate-600 mb-8 text-center">{error}</p>
-
-          <div className="flex gap-4">
-            <button
-              onClick={() => {
-                setError(null);
-                generateQuestions();
-              }}
-              className="flex-1 bg-blue-600 text-white rounded-xl py-3 font-bold hover:bg-blue-700 transition-all"
-            >
-              Retry
-            </button>
-            <button
-              onClick={onCancel}
-              className="flex-1 bg-slate-200 text-slate-700 rounded-xl py-3 font-bold hover:bg-slate-300 transition-all"
-            >
-              Cancel
-            </button>
+      <div style={styles.overlay}>
+        <div style={{ ...styles.resultCard, borderTop: '4px solid #ef4444' }}>
+          <AlertCircle size={48} color="#ef4444" style={{ margin: '0 auto 16px' }} />
+          <h2 style={styles.resultTitle}>Generation Failed</h2>
+          <p style={{ color: '#6b7280', marginBottom: 24, textAlign: 'center' }}>{error}</p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={() => { setError(null); generateQuestions(); }} style={styles.primaryBtn}>Retry</button>
+            <button onClick={onCancel} style={styles.secondaryBtn}>Cancel</button>
           </div>
         </div>
       </div>
@@ -217,330 +211,495 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
   /* ── LOADING SCREEN ── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-6">
-        <div className="text-center">
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 border-4 border-blue-200 rounded-full animate-pulse"></div>
-            <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Sparkles size={32} className="text-blue-600" />
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Generating Your Assessment</h2>
-          <p className="text-slate-600">AI is crafting questions for {skill.name}...</p>
+      <div style={styles.overlay}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={styles.spinner}></div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Generating Your Assessment</h2>
+          <p style={{ color: '#6b7280' }}>AI is crafting questions for {skill?.name}...</p>
         </div>
       </div>
     );
   }
 
-  /* ── SUBMIT CONFIRMATION MODAL ── */
-  if (showSubmitModal) {
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 z-50">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
-          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle size={32} className="text-amber-600" />
-          </div>
-          <h3 className="text-2xl font-bold text-slate-900 mb-3 text-center">Submit Assessment?</h3>
-          <p className="text-slate-600 mb-6 text-center">
-            You have answered <span className="font-bold text-blue-600">{stats.answered}</span> out of{" "}
-            <span className="font-bold">{questions.length}</span> questions.
-            {stats.notAnswered > 0 && (
-              <span className="block mt-2 text-amber-600 font-medium">
-                {stats.notAnswered} question{stats.notAnswered > 1 ? "s" : ""} left unanswered
-              </span>
-            )}
-          </p>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowSubmitModal(false)}
-              className="flex-1 bg-slate-200 text-slate-700 rounded-xl py-3 font-bold hover:bg-slate-300 transition-all"
-            >
-              Review
-            </button>
-            <button
-              onClick={handleSubmit}
-              className="flex-1 bg-blue-600 text-white rounded-xl py-3 font-bold hover:bg-blue-700 transition-all"
-            >
-              Submit
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* ── SUBMIT MODAL (Moved to render inside main return to keep background) ── */
 
   const q = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
-  const timePercent = (timeLeft / (questions.length * 120)) * 100;
   const isLowTime = timeLeft < 300;
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
-      {/* ═══════════ TOP HEADER - COMPACT ═══════════ */}
-      <header className="bg-white border-b border-slate-200 shadow-sm flex-shrink-0">
-        <div className="px-4 py-2.5">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                {skill.name.charAt(0)}
-              </div>
-              <div>
-                <h1 className="text-sm font-bold text-slate-900">{skill.name} Assessment</h1>
-                <p className="text-xs text-slate-500">Faculty Skill Evaluation</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-xs text-slate-500">Candidate</p>
-                <p className="text-xs font-bold text-slate-900">{facultyName}</p>
-              </div>
-
-              <div
-                className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 ${isLowTime
-                    ? "bg-red-50 border-red-300 text-red-700 animate-pulse"
-                    : "bg-blue-50 border-blue-200 text-blue-700"
-                  }`}
-              >
-                <Clock size={16} />
-                <span className="font-mono text-sm font-bold">{formatTime(timeLeft)}</span>
-                <div
-                  className="absolute bottom-0 left-0 h-0.5 bg-blue-600 rounded-full transition-all"
-                  style={{ width: `${timePercent}%` }}
-                ></div>
-              </div>
-
-              <button
-                onClick={() => setFocusMode(!focusMode)}
-                className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                title={focusMode ? "Exit Focus Mode" : "Enter Focus Mode"}
-              >
-                {focusMode ? <Eye size={16} /> : <EyeOff size={16} />}
-              </button>
-            </div>
+    <div
+      style={styles.root}
+      onContextMenu={e => e.preventDefault()}
+      onCopy={e => e.preventDefault()}
+      onCut={e => e.preventDefault()}
+      onPaste={e => e.preventDefault()}
+    >
+      {/* ══ TOP NAVBAR ══ */}
+      <header style={styles.navbar}>
+        {/* Left: Logo + score */}
+        <div style={styles.navLeft}>
+          <div style={styles.logoBox}>
+            <span style={styles.logoText}>h</span>
           </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs">
-              <span className="text-slate-600">
-                Question <span className="font-bold text-blue-600">{currentQuestion + 1}</span> of {questions.length}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <div
-                  className={`w-1.5 h-1.5 rounded-full ${autoSaveStatus === "saved" ? "bg-emerald-500" : "bg-amber-500"}`}
-                ></div>
-                <span className="text-xs text-slate-500">
-                  {autoSaveStatus === "saved" ? "Auto-saved" : "Saving..."}
-                </span>
-              </div>
-            </div>
-
-            <div className="h-1.5 flex-1 max-w-md bg-slate-200 rounded-full overflow-hidden mx-4">
-              <div
-                className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
+          <div style={styles.navStat}>
+            <CheckCircle2 size={14} color="#9ca3af" />
+            <span style={styles.navStatText}>{stats.answered}/{questions.length}</span>
           </div>
+          <div style={styles.navStat}>
+            <Diamond size={14} color="#9ca3af" />
+            <span style={styles.navStatText}>50</span>
+          </div>
+        </div>
+
+        {/* Center: Timer */}
+        <div style={{ ...styles.timerBox, ...(isLowTime ? styles.timerBoxDanger : {}) }}>
+          <span style={{ ...styles.timerText, ...(isLowTime ? { color: '#ef4444' } : {}) }}>
+            {formatTime(timeLeft)}
+          </span>
+          {focusMode ? (
+            <Eye size={16} color={isLowTime ? '#ef4444' : '#374151'} style={{ cursor: 'pointer' }} onClick={() => setFocusMode(false)} />
+          ) : (
+            <EyeOff size={16} color="#374151" style={{ cursor: 'pointer' }} onClick={() => setFocusMode(true)} />
+          )}
+        </div>
+
+        {/* Right: actions */}
+        <div style={styles.navRight}>
+          <button style={styles.navIcon} title="Help"><HelpCircle size={16} color="#6b7280" /></button>
+          <button onClick={onCancel} style={{ ...styles.navIcon, background: '#fee2e2' }} title="Exit">
+            <LogOut size={16} color="#ef4444" />
+          </button>
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* ═══════════ LEFT NAVIGATION PANEL - COMPACT ═══════════ */}
+      <div style={styles.body}>
+        {/* ══ LEFT SIDEBAR: Question palette ══ */}
         {!focusMode && (
-          <aside className="w-64 bg-white border-r border-slate-200 overflow-y-auto flex-shrink-0">
-            <div className="p-3 sticky top-0 bg-white border-b border-slate-200">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3">QUESTION PALETTE</h3>
-
-              <div className="grid grid-cols-2 gap-1.5 text-xs mb-3">
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded bg-emerald-500"></div>
-                  <span className="text-slate-600 text-xs">Answered</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded bg-slate-300"></div>
-                  <span className="text-slate-600 text-xs">Not Answered</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded bg-amber-500"></div>
-                  <span className="text-slate-600 text-xs">Review</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded border-2 border-slate-300"></div>
-                  <span className="text-slate-600 text-xs">Not Visited</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-3">
-              <div className="grid grid-cols-5 gap-1.5">
-                {questions.map((_, index) => {
-                  const status = getQuestionStatus(index);
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => {
-                        setCurrentQuestion(index);
-                        setVisited({ ...visited, [index]: true });
-                      }}
-                      className={`relative w-10 h-10 rounded-lg font-bold text-xs transition-all ${index === currentQuestion
-                          ? "ring-2 ring-blue-600 scale-105"
-                          : "hover:scale-105"
-                        } ${status === "answered"
-                          ? "bg-emerald-500 text-white"
-                          : status === "review"
-                            ? "bg-amber-500 text-white"
-                            : status === "visited"
-                              ? "bg-slate-300 text-slate-700"
-                              : "bg-white border-2 border-slate-300 text-slate-600"
-                        }`}
-                    >
-                      {index + 1}
-                      {markedForReview[index] && (
-                        <Flag size={8} className="absolute top-0.5 right-0.5 text-white" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <h4 className="text-xs font-bold text-slate-700 uppercase mb-2">SUMMARY</h4>
-                <div className="space-y-1.5 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Answered</span>
-                    <span className="font-bold text-emerald-600">{stats.answered}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Not Answered</span>
-                    <span className="font-bold text-slate-900">{stats.notAnswered}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Marked for Review</span>
-                    <span className="font-bold text-amber-600">{stats.marked}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-600">Not Visited</span>
-                    <span className="font-bold text-slate-400">{stats.notVisited}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <aside style={styles.sidebar}>
+            {questions.map((_, index) => {
+              const status = getQuestionStatus(index);
+              const isCurrent = index === currentQuestion;
+              return (
+                <button
+                  key={index}
+                  onClick={() => { setCurrentQuestion(index); setVisited({ ...visited, [index]: true }); }}
+                  style={{
+                    ...styles.qBtn,
+                    ...(isCurrent ? styles.qBtnActive : {}),
+                    ...(status === 'answered' && !isCurrent ? styles.qBtnAnswered : {}),
+                    ...(status === 'review' && !isCurrent ? styles.qBtnReview : {}),
+                    ...(status === 'visited' && !isCurrent ? styles.qBtnVisited : {}),
+                  }}
+                >
+                  {index + 1}
+                  {markedForReview[index] && <Flag size={7} style={{ position: 'absolute', top: 2, right: 2, color: isCurrent ? '#fff' : '#d97706' }} />}
+                </button>
+              );
+            })}
           </aside>
         )}
 
-        {/* ═══════════ MAIN QUESTION AREA - COMPACT ═══════════ */}
-        <main className="flex-1 overflow-y-auto p-4">
-          <div className="max-w-5xl mx-auto h-full flex flex-col">
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-5 mb-3 flex-1 flex flex-col">
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <BookOpen size={20} className="text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
-                      Question {currentQuestion + 1}
-                    </span>
-                    {markedForReview[currentQuestion] && (
-                      <span className="px-2.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-bold flex items-center gap-1">
-                        <Flag size={10} /> Marked
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-base font-bold text-slate-900 leading-relaxed">{q.question}</h2>
-                </div>
-              </div>
+        {/* ══ CENTER: Question ══ */}
+        <main style={styles.center}>
+          {/* Question type badge */}
+          <div style={styles.qMeta}>
+            <span style={styles.qTypeBadge}>MCQ</span>
+          </div>
 
-              <div className="space-y-2.5 flex-1">
-                {q.options.map((option, idx) => {
-                  const isSelected = answers[currentQuestion] === option;
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => handleSelectOption(option)}
-                      className={`w-full p-3.5 text-left rounded-lg border-2 transition-all flex items-center gap-3 group ${isSelected
-                          ? "border-blue-600 bg-blue-50 shadow-sm"
-                          : "border-slate-200 hover:border-blue-300 hover:bg-slate-50"
-                        }`}
-                    >
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center border-2 font-bold text-sm flex-shrink-0 ${isSelected
-                            ? "bg-blue-600 border-blue-600 text-white"
-                            : "border-slate-300 text-slate-600 group-hover:border-blue-400"
-                          }`}
-                      >
-                        {String.fromCharCode(65 + idx)}
-                      </div>
-                      <span className={`text-sm ${isSelected ? "text-blue-900 font-semibold" : "text-slate-700"}`}>
-                        {option}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+          {/* Question text */}
+          <div style={styles.questionBody}>
+            {q.title && <h3 style={styles.questionTitle}>{q.title}</h3>}
+            {q.problem && <p style={styles.questionProblem}>{q.problem}</p>}
+            
+            {/* Code block if question contains code — render pre-formatted */}
+            {q.code && (
+              <pre style={styles.codeBlock}><code>{q.code}</code></pre>
+            )}
+            
+            <p style={styles.questionText}>{q.question}</p>
+          </div>
 
-            {/* ═══════════ ACTION BAR - COMPACT ═══════════ */}
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  onClick={handleMarkForReview}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${markedForReview[currentQuestion]
-                      ? "bg-amber-500 text-white hover:bg-amber-600"
-                      : "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                    }`}
-                >
-                  <Flag size={14} />
-                  {markedForReview[currentQuestion] ? "Unmark" : "Mark"}
-                </button>
-
-                <button
-                  onClick={handleClearResponse}
-                  disabled={!answers[currentQuestion]}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                >
-                  <Trash2 size={14} />
-                  Clear
-                </button>
-
-                <div className="flex items-center gap-2 ml-auto">
-                  <button
-                    onClick={handlePrevious}
-                    disabled={currentQuestion === 0}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  >
-                    <ChevronLeft size={16} />
-                    Previous
-                  </button>
-
-                  {currentQuestion === questions.length - 1 ? (
-                    <button
-                      onClick={() => setShowSubmitModal(true)}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md transition-all"
-                    >
-                      Submit Test
-                      <Send size={14} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleNext}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md transition-all"
-                    >
-                      Next
-                      <ChevronRight size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
+          {/* Navigation arrows */}
+          <div style={styles.qNavRow}>
+            <button
+              onClick={handlePrevious}
+              disabled={currentQuestion === 0}
+              style={{ ...styles.arrowBtn, opacity: currentQuestion === 0 ? 0.3 : 1 }}
+            >
+              <ChevronLeft size={16} />
+              Previous
+            </button>
+            <span style={{ fontSize: 12, color: '#9ca3af' }}>
+              Question {currentQuestion + 1} of {questions.length}
+            </span>
+            <button
+              onClick={handleNext}
+              disabled={currentQuestion === questions.length - 1}
+              style={{ ...styles.arrowBtn, opacity: currentQuestion === questions.length - 1 ? 0.3 : 1 }}
+            >
+              Next
+              <ChevronRight size={16} />
+            </button>
           </div>
         </main>
+
+        {/* ══ RIGHT: Options panel ══ */}
+        <aside style={styles.optionsPanel}>
+          <p style={styles.optionsPanelTitle}>Select your answer to the problem below</p>
+
+          <div style={styles.optionsList}>
+            {q.options.map((option, idx) => {
+              const isSelected = answers[currentQuestion] === option;
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectOption(option)}
+                  style={{
+                    ...styles.optionBtn,
+                    ...(isSelected ? styles.optionBtnSelected : {}),
+                  }}
+                >
+                  <div style={{ ...styles.optionRadio, ...(isSelected ? styles.optionRadioSelected : {}) }}>
+                    {isSelected && <div style={styles.optionRadioDot} />}
+                  </div>
+                  <span style={{ fontSize: 14, color: isSelected ? '#1d4ed8' : '#111827', fontWeight: isSelected ? 600 : 400 }}>
+                    {option}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Action buttons */}
+          <div style={styles.actionRow}>
+            <button onClick={handleMarkForReview} style={{ ...styles.actionBtn, ...(markedForReview[currentQuestion] ? styles.actionBtnReview : {}) }}>
+              <Flag size={13} style={{ marginRight: 4 }} />
+              {markedForReview[currentQuestion] ? 'Unmark' : 'Mark'}
+            </button>
+            <button onClick={handleClearResponse} disabled={!answers[currentQuestion]} style={{ ...styles.actionBtn, opacity: answers[currentQuestion] ? 1 : 0.4 }}>
+              <Trash2 size={13} style={{ marginRight: 4 }} />
+              Clear
+            </button>
+          </div>
+
+            {/* Submit button at last question */}
+          {currentQuestion === questions.length - 1 && (
+            <button onClick={() => setShowSubmitModal(true)} style={styles.submitBtn}>
+              <Send size={14} style={{ marginRight: 6 }} />
+              Submit Test
+            </button>
+          )}
+        </aside>
       </div>
+
+      {/* ── SUBMIT MODAL OVERLAY ── */}
+      {showSubmitModal && (
+        <div style={{ ...styles.overlay, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+          <div style={styles.modal}>
+            <div style={styles.modalIconWrap}>
+              <AlertTriangle size={32} color="#d97706" />
+            </div>
+            <h3 style={{ fontSize: 22, fontWeight: 700, marginBottom: 12, textAlign: 'center', color: '#111827' }}>Submit Assessment?</h3>
+            <p style={{ color: '#4b5563', textAlign: 'center', marginBottom: 24, fontSize: 15, lineHeight: 1.5 }}>
+              You've answered <strong style={{ color: '#2563eb', fontSize: 16 }}>{stats.answered}</strong> of <strong>{questions.length}</strong> questions.
+              {stats.notAnswered > 0 && <span style={{ display: 'block', color: '#d97706', marginTop: 8, fontWeight: 600 }}>⚠ {stats.notAnswered} question(s) left unanswered</span>}
+            </p>
+            <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+              <button onClick={() => setShowSubmitModal(false)} style={{...styles.secondaryBtn, flex: 1}}>Review</button>
+              <button onClick={handleSubmit} style={{...styles.primaryBtn, flex: 1}}>Confirm Submit</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+};
+
+/* ══════════════════════════════════════
+   STYLES — light mode, HackerEarth-style
+══════════════════════════════════════ */
+const styles = {
+  root: {
+    position: 'fixed', inset: 0, zIndex: 50,
+    display: 'flex', flexDirection: 'column',
+    background: '#f3f4f6',
+    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
+    userSelect: 'none',
+  },
+
+  /* NAVBAR */
+  navbar: {
+    height: 48,
+    background: '#fff',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '0 16px',
+    flexShrink: 0,
+  },
+  navLeft: { display: 'flex', alignItems: 'center', gap: 16 },
+  logoBox: {
+    width: 28, height: 28,
+    background: '#111827',
+    borderRadius: 6,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  logoText: { color: '#fff', fontWeight: 900, fontSize: 14 },
+  navStat: { display: 'flex', alignItems: 'center', gap: 4 },
+  navStatText: { fontSize: 13, fontWeight: 600, color: '#374151' },
+  timerBox: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '5px 14px',
+    background: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: 8,
+  },
+  timerBoxDanger: { background: '#fef2f2', border: '1px solid #fca5a5' },
+  timerText: { fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: '#111827', letterSpacing: 1 },
+  navRight: { display: 'flex', alignItems: 'center', gap: 8 },
+  navIcon: {
+    width: 32, height: 32, borderRadius: 8,
+    border: '1px solid #e5e7eb',
+    background: '#f9fafb',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer',
+  },
+
+  /* BODY */
+  body: {
+    flex: 1, display: 'flex', overflow: 'hidden',
+  },
+
+  /* LEFT SIDEBAR */
+  sidebar: {
+    width: 56,
+    background: '#fff',
+    borderRight: '1px solid #e5e7eb',
+    overflowY: 'auto',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    padding: '12px 0', gap: 6,
+    flexShrink: 0,
+  },
+  qBtn: {
+    position: 'relative',
+    width: 36, height: 36,
+    borderRadius: 50,
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    color: '#374151',
+    fontWeight: 600, fontSize: 12,
+    cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'all 0.15s',
+  },
+  qBtnActive: { background: '#2563eb', color: '#fff', border: '2px solid #2563eb' },
+  qBtnAnswered: { background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7' },
+  qBtnReview: { background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' },
+  qBtnVisited: { background: '#f3f4f6', color: '#6b7280', border: '1px solid #d1d5db' },
+
+  /* CENTER */
+  center: {
+    flex: 1,
+    display: 'flex', flexDirection: 'column',
+    padding: '0',
+    overflow: 'auto',
+    borderRight: '1px solid #e5e7eb',
+    background: '#fff',
+  },
+  qMeta: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    padding: '10px 20px',
+    borderBottom: '1px solid #f3f4f6',
+    background: '#fafafa',
+  },
+  qTypeBadge: {
+    fontSize: 11, fontWeight: 700, color: '#374151',
+    background: '#e5e7eb', padding: '2px 8px', borderRadius: 4,
+    letterSpacing: 0.5,
+  },
+  qPoints: {
+    fontSize: 13, fontWeight: 600, color: '#6b7280',
+    display: 'flex', alignItems: 'center', marginLeft: 'auto',
+  },
+  qDifficultyIcon: { cursor: 'pointer' },
+
+  questionBody: {
+    flex: 1,
+    padding: '24px 24px 16px',
+  },
+  questionTitle: {
+    fontSize: 18, fontWeight: 700, color: '#111827',
+    marginBottom: 8,
+  },
+  questionProblem: {
+    fontSize: 15, color: '#4b5563', lineHeight: 1.6,
+    marginBottom: 16,
+  },
+  questionText: {
+    fontSize: 15, fontWeight: 600, color: '#111827',
+    lineHeight: 1.7, marginTop: 16, marginBottom: 16,
+  },
+  codeBlock: {
+    background: '#1f2937',
+    color: '#f9fafb',
+    borderRadius: 8,
+    padding: '16px 20px',
+    fontSize: 13,
+    fontFamily: "'Fira Code', 'Courier New', monospace",
+    lineHeight: 1.7,
+    overflowX: 'auto',
+    marginTop: 8,
+    marginBottom: 16,
+  },
+
+  qNavRow: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '12px 20px',
+    borderTop: '1px solid #f3f4f6',
+    background: '#fafafa',
+  },
+  arrowBtn: {
+    height: 32, padding: '0 12px', borderRadius: 6,
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    cursor: 'pointer',
+    color: '#374151',
+    fontWeight: 600, fontSize: 13,
+  },
+
+  /* RIGHT OPTIONS PANEL */
+  optionsPanel: {
+    flex: 1,
+    flexShrink: 0,
+    background: '#fff',
+    display: 'flex', flexDirection: 'column',
+    padding: '0',
+    overflowY: 'auto',
+  },
+  optionsPanelTitle: {
+    fontSize: 13, fontWeight: 600, color: '#374151',
+    padding: '14px 20px',
+    borderBottom: '1px solid #f3f4f6',
+    background: '#fafafa',
+    margin: 0,
+  },
+  optionsList: {
+    flex: 1,
+    display: 'flex', flexDirection: 'column',
+    padding: '12px 0',
+  },
+  optionBtn: {
+    display: 'flex', alignItems: 'center', gap: 14,
+    padding: '14px 20px',
+    background: '#fff',
+    border: 'none',
+    borderBottom: '1px solid #f3f4f6',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'background 0.12s',
+    width: '100%',
+  },
+  optionBtnSelected: { background: '#eff6ff' },
+  optionRadio: {
+    width: 18, height: 18, borderRadius: '50%',
+    border: '2px solid #d1d5db',
+    flexShrink: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    transition: 'border-color 0.12s',
+  },
+  optionRadioSelected: { borderColor: '#2563eb' },
+  optionRadioDot: {
+    width: 8, height: 8, borderRadius: '50%',
+    background: '#2563eb',
+  },
+
+  actionRow: {
+    display: 'flex', gap: 8,
+    padding: '12px 20px',
+    borderTop: '1px solid #f3f4f6',
+  },
+  actionBtn: {
+    display: 'flex', alignItems: 'center',
+    padding: '7px 14px', borderRadius: 6,
+    border: '1px solid #e5e7eb',
+    background: '#f9fafb',
+    color: '#374151', fontSize: 12, fontWeight: 600,
+    cursor: 'pointer',
+  },
+  actionBtnReview: { background: '#fef3c7', borderColor: '#fcd34d', color: '#92400e' },
+
+  submitBtn: {
+    margin: '0 20px 20px',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '10px 0',
+    background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+    color: '#fff', fontWeight: 700, fontSize: 13,
+    border: 'none', borderRadius: 8, cursor: 'pointer',
+  },
+
+  /* OVERLAYS */
+  overlay: {
+    position: 'fixed', inset: 0, zIndex: 100,
+    background: '#f9fafb',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+  resultCard: {
+    background: '#fff',
+    borderRadius: 20,
+    padding: '48px 40px',
+    maxWidth: 420, width: '100%',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+  },
+  resultIconWrap: {
+    width: 80, height: 80,
+    background: 'linear-gradient(135deg, #10b981, #059669)',
+    borderRadius: '50%',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 20,
+  },
+  resultTitle: { fontSize: 26, fontWeight: 800, color: '#111827', marginBottom: 8, textAlign: 'center' },
+  resultSub: { fontSize: 14, color: '#6b7280', marginBottom: 28, textAlign: 'center' },
+  scoreBox: {
+    background: '#f0f9ff',
+    borderRadius: 12, padding: '24px 40px',
+    marginBottom: 28, textAlign: 'center', width: '100%',
+    border: '1px solid #bae6fd',
+  },
+  scoreLabel: { fontSize: 11, fontWeight: 800, color: '#6b7280', letterSpacing: 1, marginBottom: 4 },
+  scoreValue: { fontSize: 56, fontWeight: 900, color: '#2563eb', lineHeight: 1.1 },
+  scoreDetail: { fontSize: 13, color: '#6b7280', marginTop: 4 },
+  modal: {
+    background: '#fff', borderRadius: 16, padding: '36px 32px',
+    maxWidth: 380, width: '100%',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+  },
+  modalIconWrap: {
+    width: 56, height: 56, borderRadius: '50%',
+    background: '#fef3c7',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16,
+  },
+
+  primaryBtn: {
+    width: '100%', padding: '12px 0',
+    background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+    color: '#fff', fontWeight: 700, fontSize: 14,
+    border: 'none', borderRadius: 10, cursor: 'pointer',
+  },
+  secondaryBtn: {
+    width: '100%', padding: '12px 0',
+    background: '#f3f4f6', color: '#374151', fontWeight: 600, fontSize: 14,
+    border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer',
+  },
+
+  spinner: {
+    width: 48, height: 48, borderRadius: '50%',
+    border: '4px solid #dbeafe',
+    borderTopColor: '#2563eb',
+    animation: 'spin 0.8s linear infinite',
+    margin: '0 auto 20px',
+  },
 };
 
 export default MCQTest;

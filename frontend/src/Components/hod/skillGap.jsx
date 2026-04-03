@@ -240,8 +240,11 @@ const SkillGapDashboard = () => {
                       <tbody className="divide-y divide-slate-100">
                         {gapRecord.gaps.map((gap, index) => {
                           const config = severityConfig(gap.gapSeverity);
-                          const progressPercent = Math.round(
-                            (gap.currentRating / gap.requiredRating) * 100,
+                          const progressPercent = Math.min(
+                            Math.round(
+                              (gap.currentRating / gap.requiredRating) * 100,
+                            ),
+                            100,
                           );
                           return (
                             <tr

@@ -1,5 +1,4 @@
 const User = require("../schemas/userSchema");
-const bcrypt = require("bcryptjs");
 
 // ===============================
 // GET - Fetch All Users

@@ -38,4 +38,52 @@ const getSkill = async (req, res) => {
   }
 };
 
-module.exports = { addSkill, getSkill };
+const updateSkill = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, category, description, proficiencyLevel, targetScore, noOfMcqs } = req.body;
+
+    const filter = { _id: id };
+    if (req.departmentId) filter.departmentId = req.departmentId;
+
+    const updatedSkill = await Skill.findOneAndUpdate(
+      filter,
+      { name, category, description, proficiencyLevel, targetScore, noOfMcqs },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedSkill) {
+      return res.status(404).json({ message: "Skill not found or you don't have permission" });
+    }
+
+    res.status(200).json({ message: "Skill updated successfully", skill: updatedSkill });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "A skill with this name already exists" });
+    }
+    console.error("UPDATE SKILL ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const deleteSkill = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const filter = { _id: id };
+    if (req.departmentId) filter.departmentId = req.departmentId;
+
+    const deletedSkill = await Skill.findOneAndDelete(filter);
+
+    if (!deletedSkill) {
+      return res.status(404).json({ message: "Skill not found or you don't have permission" });
+    }
+
+    res.status(200).json({ message: "Skill deleted successfully" });
+  } catch (error) {
+    console.error("DELETE SKILL ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { addSkill, getSkill, updateSkill, deleteSkill };
