@@ -26,14 +26,14 @@ const AssessmentList = ({ onSelect }) => {
         setLoading(true);
         // 1. Fetch all faculty in department
         const facultyRes = await axios.get(
-          "http://localhost:3000/api/allusers",
+          "https://skill-gap-analysis-aetw.onrender.com/api/allusers",
         );
         const list = facultyRes.data.filter((u) => u.role === "FACULTY");
         setFaculties(list);
 
         // 2. Fetch all assessments to show status
         const assessmentRes = await axios.get(
-          "http://localhost:3000/api/assessments",
+          "https://skill-gap-analysis-aetw.onrender.com/api/assessments",
         );
         setAssessments(assessmentRes.data);
       } catch (err) {
@@ -160,7 +160,7 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
     const fetchSkills = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/assessments/faculty/${facultyId}`,
+          `https://skill-gap-analysis-aetw.onrender.com/api/assessments/faculty/${facultyId}`,
         );
         setData(res.data);
         const initial = {};
@@ -200,7 +200,7 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
           comments: hodRatings[sId].comments
         })),
       };
-      await axios.post("http://localhost:3000/api/assessments/save", payload);
+      await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/assessments/save", payload);
       alert("Assessment saved successfully!");
       goBack();
     } catch (err) {
@@ -215,7 +215,7 @@ const AssessmentDetail = ({ facultyId: propId, onBack }) => {
     setSaving(true);
     try {
       const token = sessionStorage.getItem("token");
-      await axios.post("http://localhost:3000/api/assessments/reset", {
+      await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/assessments/reset", {
         facultyId,
         skillId
       }, { headers: { Authorization: `Bearer ${token}` } });

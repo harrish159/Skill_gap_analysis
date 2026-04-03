@@ -19,7 +19,7 @@ const Mapping = () => {
 
   const fetchSkills = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/skills");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skills");
       setSkills(res.data);
     } catch (err) {
       setError("Failed to load skills");
@@ -29,7 +29,7 @@ const Mapping = () => {
   const fetchMappings = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/mappingSkill");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/mappingSkill");
       setMappings(res.data);
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.missingDepartment) {
@@ -56,7 +56,7 @@ const Mapping = () => {
     }
 
     try {
-      await axios.post("http://localhost:3000/api/mappingSkill", {
+      await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/mappingSkill", {
         skillId: newMapping.skillId,
         requiredRating: Number(newMapping.requiredRating),
       });
@@ -77,7 +77,7 @@ const Mapping = () => {
       return;
 
     try {
-      await axios.delete(`http://localhost:3000/api/mappingSkill/${id}`);
+      await axios.delete(`https://skill-gap-analysis-aetw.onrender.com/api/mappingSkill/${id}`);
       fetchMappings();
     } catch (err) {
       setError("Failed to delete mapping");

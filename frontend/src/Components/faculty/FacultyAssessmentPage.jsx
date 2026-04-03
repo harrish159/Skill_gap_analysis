@@ -23,12 +23,12 @@ const FacultyAssessmentPage = () => {
     try {
       setLoading(true);
       // Fetch skills assigned to the department (assuming faculty sees all dept skills they can take)
-      const skillsRes = await axios.get("http://localhost:3000/api/skills");
+      const skillsRes = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skills");
       setSkills(skillsRes.data.filter(s => s.isActive));
 
       // Fetch existing assessments for this faculty to show scores
       const token = sessionStorage.getItem("token");
-      const assessmentRes = await axios.get(`http://localhost:3000/api/assessments/faculty/${facultyId}`, {
+      const assessmentRes = await axios.get(`https://skill-gap-analysis-aetw.onrender.com/api/assessments/faculty/${facultyId}`, {
          headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -72,7 +72,7 @@ const FacultyAssessmentPage = () => {
     try {
       setRequesting(true);
       const token = sessionStorage.getItem("token");
-      await axios.post("http://localhost:3000/api/assessments/request-retake", {
+      await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/assessments/request-retake", {
         skillId: skill._id
       }, { headers: { Authorization: `Bearer ${token}` } });
       alert("Retake request submitted to HOD successfully.");

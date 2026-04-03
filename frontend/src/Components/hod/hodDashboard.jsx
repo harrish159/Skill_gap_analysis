@@ -48,17 +48,17 @@ const HodDashboard = () => {
       setLoading(true);
 
       // Fetch faculty count
-      const facultyRes = await axios.get("http://localhost:3000/api/allusers");
+      const facultyRes = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/allusers");
       const facultyCount = facultyRes.data.filter(
         (u) => u.role === "FACULTY",
       ).length;
 
       // Fetch training programs
-      const trainingRes = await axios.get("http://localhost:3000/api/training");
+      const trainingRes = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/training");
       const activeTraining = trainingRes.data.filter((t) => t.isActive).length;
 
       // Fetch skill gaps
-      const gapsRes = await axios.get("http://localhost:3000/api/skillgaps");
+      const gapsRes = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skillgaps");
       const totalGaps = gapsRes.data.reduce(
         (sum, gap) => sum + gap.totalGaps,
         0,
@@ -66,7 +66,7 @@ const HodDashboard = () => {
 
       // Fetch assessments
       const assessmentsRes = await axios.get(
-        "http://localhost:3000/api/assessments",
+        "https://skill-gap-analysis-aetw.onrender.com/api/assessments",
       );
       const completedAssessments = assessmentsRes.data.filter(
         (a) => a.status === "submitted" || a.status === "reviewed",

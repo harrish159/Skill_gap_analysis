@@ -54,9 +54,9 @@ const FacultyDashboard = () => {
       try {
         setLoading(true);
         const [gapsRes, trainingRes, assessRes] = await Promise.allSettled([
-          axios.get(`http://localhost:3000/api/skillgaps/${facultyId}`),
-          axios.get(`http://localhost:3000/api/training/recommend/${facultyId}`),
-          axios.get(`http://localhost:3000/api/assessments/faculty/${facultyId}`),
+          axios.get(`https://skill-gap-analysis-aetw.onrender.com/api/skillgaps/${facultyId}`),
+          axios.get(`https://skill-gap-analysis-aetw.onrender.com/api/training/recommend/${facultyId}`),
+          axios.get(`https://skill-gap-analysis-aetw.onrender.com/api/assessments/faculty/${facultyId}`),
         ]);
 
         const gaps = gapsRes.status === "fulfilled" ? (gapsRes.value.data.gaps || []) : [];

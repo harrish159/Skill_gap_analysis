@@ -23,7 +23,7 @@ const FacultyTraining = () => {
       if (!silent) setLoading(true);
       else setPolling(true);
       const res = await axios.get(
-        `http://localhost:3000/api/training/recommend/${facultyId}`
+        `https://skill-gap-analysis-aetw.onrender.com/api/training/recommend/${facultyId}`
       );
       setRecommendations(res.data || []);
       setLastSynced(new Date());
@@ -47,7 +47,7 @@ const FacultyTraining = () => {
     try {
       const uniqueId = trainingId ? `${skillId}-${trainingId}` : skillId;
       setRequesting((prev) => ({ ...prev, [uniqueId]: true }));
-      await axios.post("http://localhost:3000/api/training-request", {
+      await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/training-request", {
         facultyId,
         skillId,
         trainingId,

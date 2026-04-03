@@ -27,7 +27,7 @@ const FacultyGaps = () => {
       setLoading(true);
       setError("");
       const res = await axios.get(
-        `http://localhost:3000/api/skillgaps/${facultyId}`
+        `https://skill-gap-analysis-aetw.onrender.com/api/skillgaps/${facultyId}`
       );
       setGapData(res.data);
     } catch (err) {

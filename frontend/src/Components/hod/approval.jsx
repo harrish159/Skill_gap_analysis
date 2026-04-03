@@ -29,7 +29,7 @@ const Approval = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem("token");
-      const res = await axios.get("http://localhost:3000/api/approval", {
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/approval", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -59,7 +59,7 @@ const Approval = () => {
       setSubmitting(true);
       const token = sessionStorage.getItem("token");
       await axios.put(
-        `http://localhost:3000/api/approval/${actionModal.id}`,
+        `https://skill-gap-analysis-aetw.onrender.com/api/approval/${actionModal.id}`,
         {
           status: actionModal.type,
           reason: reason || "",

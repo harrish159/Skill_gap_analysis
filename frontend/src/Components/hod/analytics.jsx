@@ -26,7 +26,7 @@ const Analytics = () => {
       setLoading(true);
 
       // Fetch skill gaps
-      const gapsRes = await axios.get("http://localhost:3000/api/skillgaps");
+      const gapsRes = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skillgaps");
 
       // Aggregate gaps by skill
       const skillGapMap = {};
@@ -70,11 +70,11 @@ const Analytics = () => {
         0,
       );
 
-      const trainingRes = await axios.get("http://localhost:3000/api/training");
+      const trainingRes = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/training");
       const activeTraining = trainingRes.data.filter((t) => t.isActive).length;
 
       const assessmentRes = await axios.get(
-        "http://localhost:3000/api/assessments",
+        "https://skill-gap-analysis-aetw.onrender.com/api/assessments",
       );
       const totalAssessments = assessmentRes.data.length;
       const completedAssessments = assessmentRes.data.filter(

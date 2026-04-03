@@ -38,12 +38,12 @@ const AdminDashboard = () => {
         approvalRes,
         trainingRes,
       ] = await Promise.all([
-        axios.get("http://localhost:3000/api/allusers"),
-        axios.get("http://localhost:3000/api/skills"),
-        axios.get("http://localhost:3000/api/assessments"),
-        axios.get("http://localhost:3000/api/skillgaps"),
-        axios.get("http://localhost:3000/api/approval/pending"),
-        axios.get("http://localhost:3000/api/training"),
+        axios.get("https://skill-gap-analysis-aetw.onrender.com/api/allusers"),
+        axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skills"),
+        axios.get("https://skill-gap-analysis-aetw.onrender.com/api/assessments"),
+        axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skillgaps"),
+        axios.get("https://skill-gap-analysis-aetw.onrender.com/api/approval/pending"),
+        axios.get("https://skill-gap-analysis-aetw.onrender.com/api/training"),
       ]);
 
       const facultyCount = usersRes.data.filter((u) => u.role === "FACULTY").length;

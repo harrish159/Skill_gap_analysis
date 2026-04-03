@@ -12,7 +12,7 @@ const NotificationDropdown = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem("token");
-      const res = await axios.get("http://localhost:3000/api/assessments/pending-retakes", {
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/assessments/pending-retakes", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(res.data);
@@ -39,7 +39,7 @@ const NotificationDropdown = () => {
   const handleAccept = async (facultyId, skillId) => {
     try {
       const token = sessionStorage.getItem("token");
-      await axios.post("http://localhost:3000/api/assessments/reset", {
+      await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/assessments/reset", {
         facultyId,
         skillId
       }, { headers: { Authorization: `Bearer ${token}` } });
@@ -54,7 +54,7 @@ const NotificationDropdown = () => {
   const handleReject = async (facultyId, skillId) => {
     try {
       const token = sessionStorage.getItem("token");
-      await axios.post("http://localhost:3000/api/assessments/reject-retake", {
+      await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/assessments/reject-retake", {
         facultyId,
         skillId
       }, { headers: { Authorization: `Bearer ${token}` } });

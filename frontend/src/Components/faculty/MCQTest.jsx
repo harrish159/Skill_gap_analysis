@@ -84,7 +84,7 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
       setLoading(true);
       const token = sessionStorage.getItem("token");
       const res = await axios.post(
-        "http://localhost:3000/api/ai/generate-test",
+        "https://skill-gap-analysis-aetw.onrender.com/api/ai/generate-test",
         { skillId: skill._id },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -135,7 +135,7 @@ const MCQTest = ({ skill, onComplete, onCancel }) => {
       const facultyId = sessionStorage.getItem("userId");
       const token = sessionStorage.getItem("token");
       await axios.post(
-        "http://localhost:3000/api/assessments/save",
+        "https://skill-gap-analysis-aetw.onrender.com/api/assessments/save",
         { facultyId, ratings: [{ skillId: skill._id, hodRating: score }] },
         { headers: { Authorization: `Bearer ${token}` } }
       );

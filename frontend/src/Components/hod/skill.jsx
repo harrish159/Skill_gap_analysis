@@ -39,7 +39,7 @@ const Skill = () => {
   const fetchSkills = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/skills");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skills");
       setSkills(res.data.filter((skill) => skill.isActive));
       setError("");
     } catch (error) {
@@ -67,7 +67,7 @@ const Skill = () => {
     try {
       if (editMode) {
         await axios.put(
-          `http://localhost:3000/api/skills/${editingId}`,
+          `https://skill-gap-analysis-aetw.onrender.com/api/skills/${editingId}`,
           newSkill,
         );
         setSkills(
@@ -77,7 +77,7 @@ const Skill = () => {
         );
       } else {
         const res = await axios.post(
-          "http://localhost:3000/api/skills",
+          "https://skill-gap-analysis-aetw.onrender.com/api/skills",
           newSkill,
         );
         setSkills([...skills, res.data.skill]);
@@ -121,7 +121,7 @@ const Skill = () => {
     if (!window.confirm("Are you sure you want to delete this skill?")) return;
 
     try {
-      await axios.delete(`http://localhost:3000/api/skills/${id}`);
+      await axios.delete(`https://skill-gap-analysis-aetw.onrender.com/api/skills/${id}`);
       setSkills(skills.filter((skill) => skill._id !== id));
       setError("");
     } catch (error) {

@@ -17,7 +17,7 @@ const FacultyList = () => {
   const fetchFaculties = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:3000/api/allusers");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/allusers");
       // Filter only faculty members
       const facultyMembers = res.data.filter((user) => user.role === "FACULTY");
       console.log("Faculties fetched:", facultyMembers);

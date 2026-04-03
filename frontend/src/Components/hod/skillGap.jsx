@@ -20,7 +20,7 @@ const SkillGapDashboard = () => {
   const fetchSkillGaps = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/skillgaps");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skillgaps");
       setSkillGaps(res.data);
       setError("");
     } catch (err) {

@@ -17,7 +17,7 @@ const AdminDepartments = () => {
     const fetchDepartments = async () => {
         try {
             setLoading(true);
-            const res = await axios.get("http://localhost:3000/api/departments");
+            const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/departments");
             setDepartments(res.data);
             setError("");
         } catch (err) {
@@ -34,7 +34,7 @@ const AdminDepartments = () => {
     const handleCreate = async () => {
         if (!formData.name) return setError("Name is required");
         try {
-            await axios.post("http://localhost:3000/api/departments", formData, {
+            await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/departments", formData, {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
             });
             fetchDepartments();
@@ -52,7 +52,7 @@ const AdminDepartments = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure?")) return;
         try {
-            await axios.delete(`http://localhost:3000/api/departments/${id}`, {
+            await axios.delete(`https://skill-gap-analysis-aetw.onrender.com/api/departments/${id}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
             });
             fetchDepartments();

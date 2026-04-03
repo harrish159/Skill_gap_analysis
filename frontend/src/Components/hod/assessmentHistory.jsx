@@ -18,7 +18,7 @@ const AssessmentHistory = () => {
     try {
       setLoading(true);
       const token = sessionStorage.getItem("token");
-      const res = await axios.get("http://localhost:3000/api/assessments/history", {
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/assessments/history", {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAssessmentsData(res.data);

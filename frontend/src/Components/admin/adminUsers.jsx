@@ -41,7 +41,7 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/allusers");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/allusers");
       setUsers(res.data);
       setFilteredUsers(res.data);
       setError("");
@@ -55,7 +55,7 @@ const AdminUsers = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/departments");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/departments");
       setDepartments(res.data);
     } catch (err) {
       console.error("Failed to load departments", err);
@@ -104,7 +104,7 @@ const AdminUsers = () => {
       return;
     }
     try {
-      const res = await axios.post("http://localhost:3000/api/register", {
+      const res = await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/register", {
         name: formData.name,
         email: formData.email,
         password: formData.password,
@@ -127,7 +127,7 @@ const AdminUsers = () => {
     }
     try {
       const res = await axios.put(
-        `http://localhost:3000/api/users/${selectedUser._id}`,
+        `https://skill-gap-analysis-aetw.onrender.com/api/users/${selectedUser._id}`,
         {
           name: formData.name,
           email: formData.email,
@@ -148,7 +148,7 @@ const AdminUsers = () => {
   const handleDeleteUser = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
-      await axios.delete(`http://localhost:3000/api/users/${id}`);
+      await axios.delete(`https://skill-gap-analysis-aetw.onrender.com/api/users/${id}`);
       setUsers(users.filter((u) => u._id !== id));
       setError("");
     } catch (err) {
@@ -164,7 +164,7 @@ const AdminUsers = () => {
     }
     try {
       await axios.put(
-        `http://localhost:3000/api/users/${selectedUser._id}/password`,
+        `https://skill-gap-analysis-aetw.onrender.com/api/users/${selectedUser._id}/password`,
         {
           password: formData.password,
         },
@@ -181,7 +181,7 @@ const AdminUsers = () => {
   const handleToggleActive = async (user) => {
     try {
       const res = await axios.put(
-        `http://localhost:3000/api/users/${user._id}`,
+        `https://skill-gap-analysis-aetw.onrender.com/api/users/${user._id}`,
         {
           name: user.name,
           email: user.email,
@@ -201,7 +201,7 @@ const AdminUsers = () => {
   const handlePromoteToHOD = async () => {
     try {
       const res = await axios.put(
-        `http://localhost:3000/api/users/${selectedUser._id}`,
+        `https://skill-gap-analysis-aetw.onrender.com/api/users/${selectedUser._id}`,
         {
           name: selectedUser.name,
           email: selectedUser.email,

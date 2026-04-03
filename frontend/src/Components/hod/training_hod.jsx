@@ -45,7 +45,7 @@ const TrainingHod = () => {
   const fetchAllPrograms = async () => {
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/training");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/training");
       setPrograms(res.data);
       setError("");
     } catch (err) {
@@ -62,7 +62,7 @@ const TrainingHod = () => {
 
   const fetchSkills = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/skills");
+      const res = await axios.get("https://skill-gap-analysis-aetw.onrender.com/api/skills");
       setSkills(res.data);
     } catch (err) {
       console.error("Error fetching skills:", err);
@@ -109,7 +109,7 @@ const TrainingHod = () => {
     }
 
     try {
-      const res = await axios.post("http://localhost:3000/api/training", {
+      const res = await axios.post("https://skill-gap-analysis-aetw.onrender.com/api/training", {
         ...newProgram,
         durationHours: Number(newProgram.durationHours),
         skillsCovered: validSkills.map((s) => ({
@@ -147,7 +147,7 @@ const TrainingHod = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this training program?")) return;
     try {
-      await axios.delete(`http://localhost:3000/api/training/${id}`);
+      await axios.delete(`https://skill-gap-analysis-aetw.onrender.com/api/training/${id}`);
       setPrograms(programs.filter((p) => p._id !== id));
     } catch (err) {
       setError("Failed to delete training program");

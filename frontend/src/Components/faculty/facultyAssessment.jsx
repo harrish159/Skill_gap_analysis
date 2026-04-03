@@ -49,7 +49,7 @@ const Assessment = () => {
       try {
         setLoading(true);
         // Use the same endpoint as HOD to get the merged view (Required vs HOD Rating)
-        const res = await axios.get(`http://localhost:3000/api/assessments/faculty/${facultyId}`);
+        const res = await axios.get(`https://skill-gap-analysis-aetw.onrender.com/api/assessments/faculty/${facultyId}`);
         // The API returns { facultyId, skillRatings: [...] }
         console.log("--> Faculty Assessment API Response:", res.data);
         setSkills(res.data.skillRatings || []);
