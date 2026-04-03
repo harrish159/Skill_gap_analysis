@@ -1,4 +1,4 @@
-const User = require("../schemas/userSchema");
+const User = require("../schemas/UserSchema");
 
 // ===============================
 // GET - Fetch All Users
