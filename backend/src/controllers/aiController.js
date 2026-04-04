@@ -69,28 +69,33 @@ Description: ${skill.description || "No specific description provided."}`;
         remaining -= chunkSize;
     }
 
-    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemma-3-12b-it"];
+    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash"];
     let lastError = null;
     let allGeneratedMcqs = [];
 
     for (const modelName of modelsToTry) {
       try {
-        console.log(`[AI-GEN] Attempting generation for skill: ${skill.name} using ${modelName} in ${chunkCounts.length} chunks`);
-        const model = genAI.getGenerativeModel({ model: modelName });
+        console.log(`[AI-GEN] >>> Starting generation attempt for "${skill.name}"...`);
+        console.log(`[AI-GEN] --- Model: ${modelName}`);
+        console.log(`[AI-GEN] --- Preparing ${chunkCounts.length} chunks to generate a total of ${targetCount} MCQs...`);
+        
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: { responseMimeType: "application/json" }
+        });
         allGeneratedMcqs = [];
 
         // Run chunks in parallel to save time
-        const promises = chunkCounts.map((count) => {
+        const promises = chunkCounts.map((count, index) => {
+          console.log(`[AI-GEN]     -> Initiating Chunk ${index + 1} for ${count} questions...`);
           const prompt = `You are an expert assessment content generator and UI formatter.
 Generate exactly ${count} multiple choice questions to assess proficiency in:
 ${skillContext}
 
 STRICT FORMAT RULES:
-1. Separate sections clearly: Title, Problem Description, Code Block, Question, Options, Correct Answer, and Explanation.
-2. Code Formatting: Place ALL code (Java, HTML, SQL, etc depending on skill) inside the "code" field. Use indentation and line breaks properly. Do NOT mix code with plain text. Use standard syntax formatting.
-3. Question Design: Keep the problem statement short and readable. Avoid long inline code in paragraphs. Move all logic into the code block.
-4. Options: Exactly 4 options. Each option must be concise and aligned.
-5. You MUST return ONLY a valid JSON array of exactly ${count} objects.
+1. You MUST return ONLY a valid JSON array of exactly ${count} objects.
+2. Code Formatting: Place ALL code (Java, HTML, SQL, etc depending on skill) inside the "code" field. Use indentation and line breaks properly.
+3. Options: Exactly 4 options. Each option must be concise and aligned.
 
 Format Example:
 [
@@ -112,16 +117,38 @@ Special instructions:
 - Ensure diversity in question topics.`;
 
           return model.generateContent(prompt).then(async (result) => {
+            console.log(`[AI-GEN]     <- Received raw response for Chunk ${index + 1}`);
             const response = await result.response;
-            let text = response.text();
-            const jsonMatch = text.match(/\[[\s\S]*\]/);
-            if (jsonMatch) text = jsonMatch[0].replace(/[\u0000-\u0019]+/g, ""); 
-            return JSON.parse(text);
+            const text = response.text();
+            console.log(`[AI-GEN]     <- Raw Text (Snippet):`, text.substring(0, 100) + "...");
+            
+            // Clean up any potential markdown formatting the AI might add despite instructions
+            let cleanText = text;
+            if (cleanText.startsWith('\`\`\`json')) {
+              cleanText = cleanText.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+            } else if (cleanText.startsWith('\`\`\`')) {
+              cleanText = cleanText.replace(/\`\`\`/g, '').trim();
+            }
+            
+            try {
+              const parsed = JSON.parse(cleanText);
+              console.log(`[AI-GEN]     <- Successfully parsed JSON for Chunk ${index + 1} (${parsed.length} questions)`);
+              return parsed;
+            } catch (parseError) {
+              console.error(`[AI-GEN]     !> JSON Parse Failed in Chunk ${index + 1}:`, parseError.message);
+              console.error(`[AI-GEN]     !> Problematic Text:`, cleanText);
+              throw parseError;
+            }
+          }).catch(err => {
+              console.error(`[AI-GEN]     !> API Call completely failed in Chunk ${index + 1}:`, err.message);
+              throw err;
           });
         });
 
         // Wait for all chunks
+        console.log(`[AI-GEN] --- Waiting for all chunks to resolve...`);
         const chunksResult = await Promise.all(promises);
+        console.log(`[AI-GEN] --- All chunks resolved successfully! Flattening results...`);
         
         // Flatten and aggregate
         chunksResult.forEach(chunk => {
@@ -130,15 +157,19 @@ Special instructions:
             }
         });
 
+        console.log(`[AI-GEN] --- Generated a total of ${allGeneratedMcqs.length} MCQs out of desired ${targetCount}.`);
+
         // If we got all chunks successfully (or at least close) we break 
         if (allGeneratedMcqs.length >= targetCount * 0.8) {
+            console.log(`[AI-GEN] >>> Generation attempt SUCCEEDED for ${modelName}`);
             break;
         } else {
+            console.log(`[AI-GEN] >>> Generation insufficient (${allGeneratedMcqs.length} < ${targetCount}). Throwing internal error to retry...`);
             throw new Error(`Only got ${allGeneratedMcqs.length} questions out of ${targetCount}`);
         }
 
       } catch (err) {
-        console.warn(`[AI-GEN] Model ${modelName} failed chunking: ${err.message}`);
+        console.warn(`[AI-GEN] >>> Model attempt ${modelName} FAILED: ${err.message}`);
         lastError = err;
         allGeneratedMcqs = []; // reset for next model
       }
@@ -168,21 +199,26 @@ Special instructions:
     // Ultimate Fallback: Try one very simple prompt if all else fails
     try {
       console.log(`[AI-GEN] Final attempt with simplified prompt for: ${skill.name}`);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-      const simplePrompt = `List 5 basic multiple choice questions about "${skill.name}" in JSON format: [{"question": "...", "options": ["...", "..."], "correct_answer": "..."}]`;
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash", generationConfig: { responseMimeType: "application/json" } });
+      const simplePrompt = `List 5 basic multiple choice questions about "${skill.name}". Format strictly as JSON array: [{"question": "...", "options": ["...", "..."], "correct_answer": "...", "explanation": "..."}]`;
 
       const result = await model.generateContent(simplePrompt);
       const text = (await result.response).text();
-      const jsonMatch = text.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const mcqs = JSON.parse(jsonMatch[0]);
-        const sanitized = mcqs.map((q, i) => ({
+      
+      let cleanText = text;
+      if (cleanText.startsWith('\`\`\`json')) {
+         cleanText = cleanText.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+      } else if (cleanText.startsWith('\`\`\`')) {
+         cleanText = cleanText.replace(/\`\`\`/g, '').trim();
+      }
+      
+      const mcqs = JSON.parse(cleanText);
+      const sanitized = mcqs.map((q, i) => ({
           ...q,
           id: `ai-simple-${Date.now()}-${i}`,
           explanation: q.explanation || "Basic competency check."
         }));
         return res.status(200).json(sanitized);
-      }
     } catch (finalErr) {
       console.error("[AI-GEN] Ultimate fallback API attempt failed:", finalErr.message);
     }
