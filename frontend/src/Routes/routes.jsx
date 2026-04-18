@@ -1,6 +1,6 @@
 import React from "react";
 import {
-  BrowserRouter as Router,
+  BrowserRouter,
   Routes,
   Route,
   Navigate,
@@ -37,7 +37,7 @@ import TrainingHod from "../Components/hod/training_hod";
 
 const AppRoutes = () => {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -99,7 +99,7 @@ const AppRoutes = () => {
         {/* 404 Route */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 };
 
