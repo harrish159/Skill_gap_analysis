@@ -18,7 +18,8 @@ app.use(cors({
   origin: [
     "http://localhost:5173", 
     "http://localhost:3000",
-    "https://skill-gap-analysis-harrish.vercel.app"
+    "https://skill-gap-analysis-harrish.vercel.app",
+    "https://skill-gap-analysis-harrishj.vercel.app"
   ],
   credentials: true
 }));
