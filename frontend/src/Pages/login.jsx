@@ -48,7 +48,7 @@ const Login = () => {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Login failed. Please check your email and password.",
+        "Login failed. Please check your email and password.",
       );
     } finally {
       setLoading(false);
@@ -190,7 +190,7 @@ const Login = () => {
         {/* Footer */}
         <div className="mt-6 text-center">
           <p className="text-sm text-slate-600">
-            © 2025 Skill Gap Analysis System
+            © 2026 Skill Gap Analysis System
           </p>
         </div>
       </div>
